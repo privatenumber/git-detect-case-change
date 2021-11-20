@@ -2,20 +2,20 @@ lockfileVersion: 5.3
 
 specifiers:
   '@pvtnbr/eslint-config': ^0.5.0
-  '@types/node': ^16.11.8
+  '@types/node': ^16.11.9
   eslint: ^8.2.0
   execa: ^6.0.0
   fs.promises.exists: ^1.1.2
-  tsup: ^5.7.2
+  tsup: ^5.7.3
   typescript: ^4.5.2
 
 devDependencies:
   '@pvtnbr/eslint-config': 0.5.0_eslint@8.2.0+typescript@4.5.2
-  '@types/node': 16.11.8
+  '@types/node': 16.11.9
   eslint: 8.2.0
   execa: 6.0.0
   fs.promises.exists: 1.1.2
-  tsup: 5.7.2_typescript@4.5.2
+  tsup: 5.7.3_typescript@4.5.2
   typescript: 4.5.2
 
 packages:
@@ -334,8 +334,8 @@ packages:
     resolution: {integrity: sha1-7ihweulOEdK4J7y+UnC86n8+ce4=}
     dev: true
 
-  /@types/node/16.11.8:
-    resolution: {integrity: sha512-hmT5gfpRkkHr7DZZHMf3jBe/zNcVGN+jXSL2f8nAsYfBPxQFToKwQlS/zES4Sjp488Bi73i+p6bvrNRRGU0x9Q==}
+  /@types/node/16.11.9:
+    resolution: {integrity: sha512-MKmdASMf3LtPzwLyRrFjtFFZ48cMf8jmX5VRYrDQiJa8Ybu5VAmkqBWqKU8fdCwD8ysw4mQ9nrEHvzg6gunR7A==}
     dev: true
 
   /@types/normalize-package-data/2.4.1:
@@ -2681,8 +2681,8 @@ packages:
     resolution: {integrity: sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg==}
     dev: true
 
-  /tsup/5.7.2_typescript@4.5.2:
-    resolution: {integrity: sha512-YxryYjhB54h8YUNlN7Oze9PnqcuN++vwrFW6qtjC1ve9eQPvzCJw0rN0WPOuEQXburwo+gtDid9C4eQZ6x/Yog==}
+  /tsup/5.7.3_typescript@4.5.2:
+    resolution: {integrity: sha512-vdcxyJ/yEOp0CM2GH1toh6n6Tc0QAShHar2FwOMszJgsRWwc9BnI92XwMB52Fz9Y/W5JRFFgtVs+gR+VTOFLtA==}
     hasBin: true
     peerDependencies:
       typescript: ^4.2.3
