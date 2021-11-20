@@ -22,10 +22,9 @@ const getGitTreeFiles = async () => {
 	return lsTreeOutput.stdout.split('\n');
 };
 
-
 // TODO: Dry run mode
 // TODO: accept -- to scope directory
- (async () => {
+(async () => {
 	const movedFiles = await getMovedFiles();
 	const gitFiles = await getGitTreeFiles();
 	const result = await Promise.all(
