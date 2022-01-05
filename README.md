@@ -14,7 +14,7 @@ git mv <old-path> <new-path>
 
 However, this is not always plausible to do if the case-changes have already been completed without Git (eg. autonamted by separate process) and there's a lot to rename.
 
-This script automates this process for you.
+This script automates case change detection for Git.
 
 ## Usage
 Use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to run without installation.
