@@ -20,9 +20,9 @@
 	"files": [
 		"dist"
 	],
-	"bin": "dist/index.js",
+	"bin": "bin/git-detect-case-change.js",
 	"scripts": {
-		"build": "tsup src",
+		"build": "tsup src --format cjs --minify",
 		"lint": "eslint .",
 		"postversion": "npm run build"
 	},
