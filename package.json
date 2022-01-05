@@ -1,13 +1,14 @@
 {
 	"name": "git-detect-case-change",
 	"version": "0.0.0-semantic-release",
-	"description": "Snap a screenshot of a tweet",
+	"description": "Detect file name case changes in a Git project",
 	"keywords": [
-		"twitter",
-		"tweet",
-		"snap",
-		"snapshot",
-		"screenshot"
+		"git",
+		"detect",
+		"case change",
+		"case sensitive",
+		"rename",
+		"move"
 	],
 	"license": "MIT",
 	"repository": "privatenumber/git-detect-case-change",
@@ -22,11 +23,13 @@
 	"bin": "dist/index.js",
 	"scripts": {
 		"build": "tsup src",
-		"lint": "eslint ."
+		"lint": "eslint .",
+		"postversion": "npm run build"
 	},
 	"devDependencies": {
 		"@pvtnbr/eslint-config": "^0.5.0",
 		"@types/node": "^16.11.9",
+		"cleye": "^1.0.1",
 		"eslint": "^8.2.0",
 		"execa": "^6.0.0",
 		"fs.promises.exists": "^1.1.2",

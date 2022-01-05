@@ -1,9 +1,11 @@
 import { execa } from 'execa';
 import exists from 'fs.promises.exists';
+import { cli } from 'cleye';
+import { version, description } from '../package.json';
 
-const getMovedFiles = async () => {
+const getMovedFiles = async (pathspec?: string) => {
 	const movedFiles = new Map<string, string>();
-	const gitStatus = await execa('git', ['status', '--porcelain', '--untracked-files=no']);
+	const gitStatus = await execa('git', ['status', '--porcelain', '--untracked-files=no', ...(pathspec ? ['--', pathspec] : [])]);
 	const files = gitStatus.stdout.split('\n');
 
 	for (const file of files) {
@@ -17,16 +19,37 @@ const getMovedFiles = async () => {
 	return movedFiles;
 };
 
-const getGitTreeFiles = async () => {
-	const lsTreeOutput = await execa('git', ['ls-tree', '--name-only', '-r', 'HEAD']);
+const getGitTreeFiles = async (scopePath?: string) => {
+	const lsTreeOutput = await execa('git', ['ls-tree', '--name-only', '-r', 'HEAD', ...(scopePath ? ['--', scopePath] : [])]);
 	return lsTreeOutput.stdout.split('\n');
 };
 
-// TODO: Dry run mode
-// TODO: accept -- to scope directory
 (async () => {
-	const movedFiles = await getMovedFiles();
-	const gitFiles = await getGitTreeFiles();
+	const argv = cli({
+		name: 'git-detect-case-change',
+
+		version,
+
+		parameters: ['[path]'],
+
+		flags: {
+			dry: {
+				type: Boolean,
+				alias: 'd',
+				description: 'Dry run mode',
+			},
+		},
+
+		help: {
+			description,
+		},
+	});
+
+	const { dry } = argv.flags;
+	const { path: scopePath } = argv._;
+
+	const movedFiles = await getMovedFiles(scopePath);
+	const gitFiles = await getGitTreeFiles(scopePath);
 	const result = await Promise.all(
 		gitFiles.map(async filePath => [
 			filePath,
@@ -47,7 +70,10 @@ const getGitTreeFiles = async () => {
 			continue;
 		}
 
-		await execa('git', ['mv', oldFilePath, newFilePath]);
+		if (!dry) {
+			await execa('git', ['mv', oldFilePath, newFilePath]);
+		}
+
 		console.log(`${oldFilePath} -> ${newFilePath}`);
 	}
 })();

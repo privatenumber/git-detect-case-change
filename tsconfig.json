@@ -3,6 +3,7 @@
 		"isolatedModules": true,
 		"esModuleInterop": true,
 		"moduleResolution": "node",
+		"resolveJsonModule": true,
 		"lib": ["ESNext"],
 		"target": "ESNext",
 	},
