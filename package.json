@@ -1,7 +1,7 @@
 {
 	"name": "git-detect-case-change",
 	"version": "0.0.0-semantic-release",
-	"description": "Detect file name case changes in a Git project",
+	"description": "Detect file name case changes in a Git repository",
 	"keywords": [
 		"git",
 		"detect",
