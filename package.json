@@ -27,10 +27,10 @@
 		"postversion": "npm run build"
 	},
 	"devDependencies": {
-		"@pvtnbr/eslint-config": "^0.5.0",
+		"@pvtnbr/eslint-config": "^0.11.0",
 		"@types/node": "^16.11.9",
 		"cleye": "^1.0.1",
-		"eslint": "^8.2.0",
+		"eslint": "^8.6.0",
 		"execa": "^6.0.0",
 		"fs.promises.exists": "^1.1.2",
 		"tsup": "^5.7.3",
