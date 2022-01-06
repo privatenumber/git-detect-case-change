@@ -1,4 +1,4 @@
-# git-detect-case-change <a href="https://npm.im/git-detect-case-change"><img src="https://badgen.net/npm/v/git-detect-case-change"></a> <a href="https://packagephobia.now.sh/result?p=git-detect-case-change"><img src="https://packagephobia.now.sh/badge?p=git-detect-case-change"></a>
+# git-detect-case-change
 
 Script to detect file name case changes in a Git repository.
 
