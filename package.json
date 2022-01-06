@@ -18,6 +18,7 @@
 		"email": "hiroki.osame@gmail.com"
 	},
 	"files": [
+		"bin",
 		"dist"
 	],
 	"bin": "bin/git-detect-case-change.js",
