@@ -17,11 +17,13 @@ However, this is not always plausible to do if the case-changes have already bee
 This script automates case change detection for Git.
 
 ## Usage
-Use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to run without installation.
+
+Simply run the script in your Git repository. Run with `--dry` to see what files would be renamed before staging them.
+
+Use [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) to run:
 ```sh
 npx git-detect-case-change
 ```
-
 
 ## How does it work?
 1. Get the case-sensitive file names from Git in the current project.
