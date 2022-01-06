@@ -7,7 +7,7 @@ Script to detect file name case changes in a Git repository.
 ## Why?
 macOS and Windows file-systems are case-insensitive by default, preventing Git from recognizing file name case changes when renamed without Git (eg. [StackOverflow discussion](https://stackoverflow.com/questions/17683458/how-do-i-commit-case-sensitive-only-filename-changes-in-git)).
 
-Git recommends changing the file name case through Git:
+The recommended solution is renaming the files through Git:
 ```sh
 git mv <old-path> <new-path>
 ```
