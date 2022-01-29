@@ -11,10 +11,13 @@ Run the script with [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner
 npx git-detect-case-change
 ```
 
+#### Dry run
 Run with `--dry` to see what files would be renamed before staging them:
 ```sh
 npx git-detect-case-change --dry
 ```
+
+#### Scoping files
 
 Pass in specific paths after `--` to scope the search to:
 ```sh
