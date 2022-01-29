@@ -1,0 +1,53 @@
+{
+	"name": "git-detect-case-change",
+	"version": "0.0.0-semantic-release",
+	"description": "Detect file name case changes in a Git repository",
+	"keywords": [
+		"git",
+		"detect",
+		"case change",
+		"case sensitive",
+		"rename",
+		"move"
+	],
+	"license": "MIT",
+	"repository": "privatenumber/git-detect-case-change",
+	"funding": "https://github.com/privatenumber/git-detect-case-change?sponsor=1",
+	"author": {
+		"name": "Hiroki Osame",
+		"email": "hiroki.osame@gmail.com"
+	},
+	"files": [
+		"bin",
+		"dist"
+	],
+	"bin": "bin/git-detect-case-change.js",
+	"scripts": {
+		"build": "tsup src --format cjs --minify",
+		"lint": "eslint .",
+		"postversion": "npm run build"
+	},
+	"husky": {
+		"hooks": {
+			"pre-commit": "lint-staged"
+		}
+	},
+	"lint-staged": {
+		"*.{js,ts}": "eslint"
+	},
+	"devDependencies": {
+		"@pvtnbr/eslint-config": "^0.11.0",
+		"@types/node": "^16.11.9",
+		"cleye": "^1.1.0",
+		"eslint": "^8.6.0",
+		"execa": "^6.0.0",
+		"fs.promises.exists": "^1.1.2",
+		"husky": "^4.0.0",
+		"lint-staged": "^12.1.5",
+		"tsup": "^5.7.3",
+		"typescript": "^4.5.2"
+	},
+	"eslintConfig": {
+		"extends": "@pvtnbr"
+	}
+}
