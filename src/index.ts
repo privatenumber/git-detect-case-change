@@ -1,7 +1,7 @@
 import { execa } from 'execa';
 import exists from 'fs.promises.exists';
 import { cli } from 'cleye';
-import { version, description } from '../package.json';
+import packageJson from '../package.json';
 
 const getMovedFiles = async (pathspec?: string) => {
 	const movedFiles = new Map<string, string>();
@@ -28,9 +28,9 @@ const getGitTreeFiles = async (scopePath?: string) => {
 	const argv = cli({
 		name: 'git-detect-case-change',
 
-		version,
+		version: packageJson.version,
 
-		parameters: ['[path]'],
+		parameters: ['--', '[paths...]'],
 
 		flags: {
 			dry: {
@@ -41,15 +41,15 @@ const getGitTreeFiles = async (scopePath?: string) => {
 		},
 
 		help: {
-			description,
+			description: packageJson.description,
 		},
 	});
 
 	const { dry } = argv.flags;
-	const { path: scopePath } = argv._;
+	const { paths } = argv._['--'];
 
-	const movedFiles = await getMovedFiles(scopePath);
-	const gitFiles = await getGitTreeFiles(scopePath);
+	const movedFiles = await getMovedFiles(paths);
+	const gitFiles = await getGitTreeFiles(paths);
 	const result = await Promise.all(
 		gitFiles.map(async filePath => [
 			filePath,
