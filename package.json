@@ -17,11 +17,11 @@
 		"name": "Hiroki Osame",
 		"email": "hiroki.osame@gmail.com"
 	},
+	"type": "module",
 	"files": [
 		"dist"
 	],
 	"bin": "dist/index.cjs",
-	"type": "module",
 	"scripts": {
 		"prepare": "simple-git-hooks",
 		"build": "pkgroll --minify",

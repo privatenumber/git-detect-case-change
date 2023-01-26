@@ -3,9 +3,17 @@ import exists from 'fs.promises.exists';
 import { cli } from 'cleye';
 import { version, description } from '../package.json';
 
-const getMovedFiles = async (pathspec?: string) => {
+const getMovedFiles = async (pathspec?: string[]) => {
 	const movedFiles = new Map<string, string>();
-	const gitStatus = await execa('git', ['status', '--porcelain', '--untracked-files=no', ...(pathspec ? ['--', pathspec] : [])]);
+	const gitStatus = await execa(
+		'git',
+		[
+			'status',
+			'--porcelain',
+			'--untracked-files=no',
+			...(pathspec ? ['--', ...pathspec] : []),
+		],
+	);
 	const files = gitStatus.stdout.split('\n');
 
 	for (const file of files) {
@@ -19,8 +27,17 @@ const getMovedFiles = async (pathspec?: string) => {
 	return movedFiles;
 };
 
-const getGitTreeFiles = async (scopePath?: string) => {
-	const lsTreeOutput = await execa('git', ['ls-tree', '--name-only', '-r', 'HEAD', ...(scopePath ? ['--', scopePath] : [])]);
+const getGitTreeFiles = async (scopePath?: string[]) => {
+	const lsTreeOutput = await execa(
+		'git',
+		[
+			'ls-tree',
+			'--name-only',
+			'-r',
+			'HEAD',
+			...(scopePath ? ['--', ...scopePath] : []),
+		],
+	);
 	return lsTreeOutput.stdout.split('\n');
 };
 
@@ -46,7 +63,7 @@ const getGitTreeFiles = async (scopePath?: string) => {
 	});
 
 	const { dry } = argv.flags;
-	const { paths } = argv._['--'];
+	const { paths } = argv._;
 
 	const movedFiles = await getMovedFiles(paths);
 	const gitFiles = await getGitTreeFiles(paths);
