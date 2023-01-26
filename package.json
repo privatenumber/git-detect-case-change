@@ -18,12 +18,11 @@
 		"email": "hiroki.osame@gmail.com"
 	},
 	"files": [
-		"bin",
 		"dist"
 	],
-	"bin": "bin/git-detect-case-change.js",
+	"bin": "dist/index.js",
 	"scripts": {
-		"build": "tsup src --format cjs --minify",
+		"build": "pkgroll --minify",
 		"lint": "eslint .",
 		"type-check": "tsc --noEmit",
 		"prepack": "pnpm build"
@@ -45,7 +44,7 @@
 		"fs.promises.exists": "^1.1.3",
 		"husky": "^4.0.0",
 		"lint-staged": "^13.1.0",
-		"tsup": "^5.7.3",
+		"pkgroll": "^1.8.1",
 		"typescript": "^4.9.4"
 	},
 	"eslintConfig": {
