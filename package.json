@@ -22,15 +22,14 @@
 	],
 	"bin": "dist/index.js",
 	"scripts": {
+		"prepare": "simple-git-hooks",
 		"build": "pkgroll --minify",
 		"lint": "eslint .",
 		"type-check": "tsc --noEmit",
 		"prepack": "pnpm build"
 	},
-	"husky": {
-		"hooks": {
-			"pre-commit": "lint-staged"
-		}
+	"simple-git-hooks": {
+		"pre-commit": "pnpm lint-staged"
 	},
 	"lint-staged": {
 		"*.{js,ts}": "eslint"
@@ -42,9 +41,9 @@
 		"eslint": "^8.32.0",
 		"execa": "^6.1.0",
 		"fs.promises.exists": "^1.1.3",
-		"husky": "^4.0.0",
 		"lint-staged": "^13.1.0",
 		"pkgroll": "^1.8.1",
+		"simple-git-hooks": "^2.8.1",
 		"typescript": "^4.9.4"
 	},
 	"eslintConfig": {
