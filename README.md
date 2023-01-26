@@ -1,15 +1,17 @@
 # git-detect-case-change
 
-Script to detect file name case changes in a Git repository.
+Script to stage file-path case changes in a Git repository.
 
 <sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other cool projects I'm working on! ❤️</sub>
 
 ## Usage
 
-Run the script with [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) in your Git repository:
+After renaming files, run the script with [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) in your Git repository:
 ```sh
 npx git-detect-case-change
 ```
+
+If there were any case-changes, it will detect and stage them for you.
 
 #### Dry run
 Run with `--dry` to see what files would be renamed before staging them:
