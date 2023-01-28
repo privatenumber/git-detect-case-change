@@ -25,7 +25,7 @@
 	"scripts": {
 		"prepare": "simple-git-hooks",
 		"build": "pkgroll --minify",
-		"lint": "eslint .",
+		"lint": "eslint --cache .",
 		"type-check": "tsc --noEmit",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
