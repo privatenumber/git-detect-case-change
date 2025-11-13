@@ -1,22 +1,10 @@
 import type fs from 'node:fs';
 import { describe, expect } from 'manten';
 import { createFixture } from 'fs-fixture';
-import spawn, { type SubprocessError } from 'nano-spawn';
+import spawn from 'nano-spawn';
 import { isFsCaseSensitive } from 'is-fs-case-sensitive';
 import { createGit } from './utils/create-git.js';
-
-const gitDetectCaseChangePath = new URL('../dist/index.cjs', import.meta.url).pathname;
-
-const gitDetectCaseChange = async (
-	fixturePath: string,
-	args: string[] = [],
-) => (
-	await spawn(
-		gitDetectCaseChangePath,
-		args,
-		{ cwd: fixturePath },
-	).catch(error => error as SubprocessError)
-);
+import { gitDetectCaseChange } from './utils/git-detect-case-change.js';
 
 describe('git-detect-case-change', ({ test }) => {
 	test('skips on case-sensitive filesystem', async () => {
