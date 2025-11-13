@@ -36,12 +36,13 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 		[
 			'ls-tree',
 			'--name-only',
+			'-z',
 			'-r',
 			'HEAD',
 			...(scopePath ? ['--', ...scopePath] : []),
 		],
 	);
-	return lsTreeOutput.stdout.split('\n');
+	return lsTreeOutput.stdout.split('\0').filter(Boolean);
 };
 
 (async () => {
@@ -74,12 +75,20 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 
 	const movedFiles = await getMovedFiles(paths);
 	const gitFiles = await getGitTreeFiles(paths);
-	const result = await Promise.all(
-		gitFiles.map(async filePath => [
-			filePath,
-			await exists(filePath, false),
-		]),
-	);
+
+	// Process in batches to avoid EMFILE errors on large repos
+	const BATCH_SIZE = 100;
+	const result: [string, string | false][] = [];
+	for (let i = 0; i < gitFiles.length; i += BATCH_SIZE) {
+		const batch = gitFiles.slice(i, i + BATCH_SIZE);
+		const batchResults = await Promise.all(
+			batch.map(async filePath => [
+				filePath,
+				await exists(filePath, false),
+			] as [string, string | false]),
+		);
+		result.push(...batchResults);
+	}
 
 	const caseDifferentFiles = result.filter(
 		([oldFilePath, newFilePath]) => (
@@ -97,7 +106,12 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 		if (!dry) {
 			if (fixLocal) {
 				// Rename filesystem file to match Git case
-				await fs.rename(localPath, gitPath);
+				try {
+					await fs.rename(localPath, gitPath);
+				} catch (error) {
+					console.error(`Failed to rename ${localPath} -> ${gitPath}: ${(error as Error).message}`);
+					continue;
+				}
 			} else {
 				// Stage local change to Git (current behavior)
 				await spawn('git', ['mv', gitPath, localPath]);
