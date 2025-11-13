@@ -306,3 +306,144 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe('');
 	});
 });
+
+describe('Path complexity', ({ test }) => {
+	test('handles nested directories', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/components/ui/Button.tsx': 'export const Button = () => {};',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change case deep in directory tree
+		await fixture.rm('src/components/ui/Button.tsx');
+		await fixture.writeFile('src/components/ui/BUTTON.tsx', 'export const Button = () => {};');
+
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('src/components/ui/Button.tsx -> src/components/ui/BUTTON.tsx');
+
+		const status = await git('status', ['--porcelain']);
+		expect(status).toMatch(/^R/);
+	});
+
+	test('handles files with spaces', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'my file.ts': 'export const main = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change case
+		await fixture.rm('my file.ts');
+		await fixture.writeFile('MY FILE.ts', 'export const main = true;');
+
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('my file.ts -> MY FILE.ts');
+
+		const status = await git('status', ['--porcelain']);
+		expect(status).toMatch(/^R/);
+	});
+
+	test('handles partial case changes', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'aBcDef.ts': 'export const main = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Partial case change (not all letters flipped)
+		await fixture.rm('aBcDef.ts');
+		await fixture.writeFile('AbCdEf.ts', 'export const main = true;');
+
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('aBcDef.ts -> AbCdEf.ts');
+
+		const status = await git('status', ['--porcelain']);
+		expect(status).toMatch(/^R/);
+	});
+});
+
+describe('Error handling', ({ test }) => {
+	test('fails when not in git repository', async ({ onTestFail }) => {
+		await using fixture = await createFixture({
+			'file.ts': 'export const main = true;',
+		});
+
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect('exitCode' in result).toBe(true);
+		if ('exitCode' in result) {
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toMatch(/fatal|not a git repository/i);
+		}
+	});
+
+	test('handles empty git repository', async ({ onTestFail }) => {
+		await using fixture = await createFixture({
+			'file.ts': 'export const main = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		// No commits yet, so no HEAD
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		// Should fail because git ls-tree HEAD won't work
+		expect('exitCode' in result).toBe(true);
+		if ('exitCode' in result) {
+			expect(result.exitCode).not.toBe(0);
+		}
+	});
+});
