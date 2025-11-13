@@ -1,8 +1,9 @@
 {
 	"compilerOptions": {
-		"moduleResolution": "Node16",
+		"module": "preserve",
 		"resolveJsonModule": true,
 		"strict": true,
+		"noEmit": true,
 		"esModuleInterop": true,
 		"isolatedModules": true,
 	},

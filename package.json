@@ -27,7 +27,7 @@
 		"prepare": "simple-git-hooks",
 		"build": "pkgroll --minify",
 		"lint": "lintroll",
-		"type-check": "tsc --noEmit",
+		"type-check": "tsc",
 		"prepack": "pnpm build && clean-pkg-json"
 	},
 	"simple-git-hooks": {
