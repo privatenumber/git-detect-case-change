@@ -1,11 +1,13 @@
-import { execa } from 'execa';
+import spawn from 'nano-spawn';
 import exists from 'fs.promises.exists';
 import { cli } from 'cleye';
-import { version, description } from '../package.json';
+import packageJson from '../package.json' with { type: 'json' };
+
+const { version, description } = packageJson;
 
 const getMovedFiles = async (pathspec?: string[]) => {
 	const movedFiles = new Map<string, string>();
-	const gitStatus = await execa(
+	const gitStatus = await spawn(
 		'git',
 		[
 			'status',
@@ -28,7 +30,7 @@ const getMovedFiles = async (pathspec?: string[]) => {
 };
 
 const getGitTreeFiles = async (scopePath?: string[]) => {
-	const lsTreeOutput = await execa(
+	const lsTreeOutput = await spawn(
 		'git',
 		[
 			'ls-tree',
@@ -88,7 +90,7 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 		}
 
 		if (!dry) {
-			await execa('git', ['mv', oldFilePath, newFilePath]);
+			await spawn('git', ['mv', oldFilePath, newFilePath]);
 		}
 
 		console.log(`${oldFilePath} -> ${newFilePath}`);
