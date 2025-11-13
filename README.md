@@ -1,72 +1,71 @@
 # git-detect-case-change
 
-Bidirectional tool to detect and fix file-path case changes in Git repositories on case-insensitive file systems.
+Detect and fix filename case changes in Git repos on macOS/Windows (case-insensitive file systems).
+
+```sh
+# Renamed foo.js → Foo.js but Git won't detect it?
+npx git-detect-case-change              # Stage the case change
+npx git-detect-case-change --fix-local  # Or fix local filesystem to match Git
+```
 
 <sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other cool projects I'm working on! ❤️</sub>
 
-## Usage
+## What this tool does
 
-### Default mode: Stage local changes to Git
-After renaming files locally, run the script with [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) in your Git repository:
-```sh
-npx git-detect-case-change
-```
+On macOS/Windows, the filesystem is case-insensitive. Git isn't.
 
-If there were any case-changes, it will detect and stage them for you.
+Git **cannot detect filename case-only changes** like `/src/foo.js` → `/src/Foo.js`.
 
-### Fix local mode: Rename local files to match Git
-If your filesystem has different case than Git (e.g., after pulling changes from a teammate), use `--fix-local`:
-```sh
-npx git-detect-case-change --fix-local
-```
+This tool automatically finds and fixes these mismatches in **both directions**:
 
-This renames your local files to match Git's case instead of staging changes.
+| You want to… | Use | What it does |
+|-------------|-----|--------------|
+| Stage local case changes to Git | `npx git-detect-case-change` | Runs `git mv old new` for each case change |
+| Fix local filesystem to match Git (e.g., after pulling changes) | `npx git-detect-case-change --fix-local` | Renames local files to Git's case |
 
-### Options
+## Options
 
-#### Dry run
-Run with `--dry` (or `-d`) to see what would be changed without making any modifications:
+**Dry run** — See what would change without modifying anything:
 ```sh
 npx git-detect-case-change --dry
 npx git-detect-case-change --fix-local --dry
 ```
 
-#### Scoping files
-
-Pass in specific paths after `--` to scope the search to:
+**Scope to specific paths:**
 ```sh
-npx git-detect-case-change -- <scope to directory path>
+npx git-detect-case-change -- <dir-or-file>
 ```
 
-## Why?
-File-systems on macOS & Windows are _case-insensitive_ by default, which means paths `/a.txt` and `/A.txt` cannot exist at the same time. Because of this default, Git is also case-insensitive by default, preventing it from detecting case changes in file names.
+<details>
+<summary><strong>Why does this happen?</strong></summary>
 
-The recommended solution 
-from this [StackOverflow discussion](https://stackoverflow.com/questions/17683458/how-do-i-commit-case-sensitive-only-filename-changes-in-git) is to rename the files individually with `git mv`:
+macOS and Windows default to case-insensitive file systems. Git respects the underlying filesystem, so it can't detect case-only renames without help.
+
+The official workaround is:
 ```sh
 git mv <old-path> <new-path>
 ```
 
-However, this may not be practical if the case-changes were made without Git (eg. automated by another program) and there's a lot to rename.
+…but that's painful if many files changed or the renames weren't done through Git (e.g., automated refactoring tools).
 
-This script automates case-change detection for Git.
+This tool automates case-change detection for Git. See [this StackOverflow discussion](https://stackoverflow.com/questions/17683458/how-do-i-commit-case-sensitive-only-filename-changes-in-git) for more context.
 
-## How does it work?
-1. Get the case-sensitive file paths from the current Git project:
+</details>
+
+<details>
+<summary><strong>How does it work?</strong></summary>
+
+1. Get case-sensitive file paths from Git index:
     ```sh
     git ls-tree --name-only -z -r HEAD
     ```
-    (Uses `-z` for NUL-terminated output to handle filenames with spaces, quotes, or special characters)
+    Uses `-z` for NUL-terminated output to handle filenames with spaces, quotes, or special characters.
 
-2. Check each file path with [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to find a case-insensitive match.
-   - Files are processed in batches of 100 to avoid system file descriptor limits on large repositories.
+2. Check each Git path with [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to find case-insensitive matches on the filesystem.
+   - Files are processed in batches of 100 to avoid file descriptor limits on large repos.
 
-3. If the path exists with a different case:
-    - **Default mode**: Stage the change with Git:
-        ```sh
-        git mv <old-path> <new-path>
-        ```
-    - **Fix local mode**: Rename the filesystem file to match Git:
-        ```sh
-        fs.rename(<local-path>, <git-path>)
-        ```
+3. If the path exists with different case:
+    - **Default mode**: Stage with `git mv <old-path> <new-path>`
+    - **Fix local mode**: Rename filesystem file with `fs.rename(<local-path>, <git-path>)`
+
+</details>
