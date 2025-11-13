@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import spawn from 'nano-spawn';
 import exists from 'fs.promises.exists';
 import { cli } from 'cleye';
@@ -57,6 +58,10 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 				alias: 'd',
 				description: 'Dry run mode',
 			},
+			fixLocal: {
+				type: Boolean,
+				description: 'Rename local files to match Git case (instead of staging local changes)',
+			},
 		},
 
 		help: {
@@ -64,7 +69,7 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 		},
 	});
 
-	const { dry } = argv.flags;
+	const { dry, fixLocal } = argv.flags;
 	const { paths } = argv._;
 
 	const movedFiles = await getMovedFiles(paths);
@@ -83,16 +88,24 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 	) as string[][];
 
 	// Needs to happen sequentially because of git.lock
-	for (const [oldFilePath, newFilePath] of caseDifferentFiles) {
+	for (const [gitPath, localPath] of caseDifferentFiles) {
 		// Don't re-move if move is staged
-		if (movedFiles.get(oldFilePath) === newFilePath) {
+		if (movedFiles.get(gitPath) === localPath) {
 			continue;
 		}
 
 		if (!dry) {
-			await spawn('git', ['mv', oldFilePath, newFilePath]);
+			if (fixLocal) {
+				// Rename filesystem file to match Git case
+				await fs.rename(localPath, gitPath);
+			} else {
+				// Stage local change to Git (current behavior)
+				await spawn('git', ['mv', gitPath, localPath]);
+			}
 		}
 
-		console.log(`${oldFilePath} -> ${newFilePath}`);
+		console.log(fixLocal
+			? `Fixed: ${localPath} -> ${gitPath}`
+			: `${gitPath} -> ${localPath}`);
 	}
 })();

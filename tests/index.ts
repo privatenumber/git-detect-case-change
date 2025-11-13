@@ -146,3 +146,103 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(renamedCount).toBe(3);
 	});
 });
+
+describe('--fix-local mode', ({ test }) => {
+	test('renames local files to match Git case', async ({ onTestFail }) => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		// Commit the file with lowercase
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Simulate filesystem having different case (e.g., after pull from remote)
+		await fixture.rm('src/index.ts');
+		await fixture.writeFile('src/INDEX.ts', 'export const main = true;');
+
+		// Run with --fix-local to rename filesystem to match Git
+		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('Fixed: src/INDEX.ts -> src/index.ts');
+
+		// Verify git status is clean (no pending changes)
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe('');
+	});
+
+	test('dry run does not rename files', async ({ onTestFail }) => {
+		await using fixture = await createFixture({
+			'src/utils.ts': 'export const util = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		// Commit the file
+		await git('add', ['src/utils.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change filesystem case
+		await fixture.rm('src/utils.ts');
+		await fixture.writeFile('src/UTILS.ts', 'export const util = true;');
+
+		// Run with --fix-local --dry
+		const result = await gitDetectCaseChange(fixture.path, ['--fix-local', '--dry']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('Fixed: src/UTILS.ts -> src/utils.ts');
+
+		// Verify git status still shows the case difference (not fixed in dry mode)
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe(''); // Git can't see case-only differences on case-insensitive FS
+	});
+
+	test('handles multiple files', async ({ onTestFail }) => {
+		await using fixture = await createFixture({
+			'src/file1.ts': 'export const file1 = true;',
+			'src/file2.ts': 'export const file2 = true;',
+			'lib/file3.ts': 'export const file3 = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		// Commit all files
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change all to uppercase on filesystem
+		await fixture.rm('src/file1.ts');
+		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
+
+		await fixture.rm('src/file2.ts');
+		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
+
+		await fixture.rm('lib/file3.ts');
+		await fixture.writeFile('lib/FILE3.ts', 'export const file3 = true;');
+
+		// Run with --fix-local
+		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		// Should fix all three files
+		expect(result.stdout).toMatch('Fixed: src/FILE1.ts -> src/file1.ts');
+		expect(result.stdout).toMatch('Fixed: src/FILE2.ts -> src/file2.ts');
+		expect(result.stdout).toMatch('Fixed: lib/FILE3.ts -> lib/file3.ts');
+
+		// Verify git status is clean (all files match Git case)
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe('');
+	});
+});
