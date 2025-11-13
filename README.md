@@ -1,22 +1,34 @@
 # git-detect-case-change
 
-Script to stage file-path case changes in a Git repository.
+Bidirectional tool to detect and fix file-path case changes in Git repositories on case-insensitive file systems.
 
 <sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other cool projects I'm working on! ❤️</sub>
 
 ## Usage
 
-After renaming files, run the script with [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) in your Git repository:
+### Default mode: Stage local changes to Git
+After renaming files locally, run the script with [npx](https://nodejs.dev/learn/the-npx-nodejs-package-runner) in your Git repository:
 ```sh
 npx git-detect-case-change
 ```
 
 If there were any case-changes, it will detect and stage them for you.
 
+### Fix local mode: Rename local files to match Git
+If your filesystem has different case than Git (e.g., after pulling changes from a teammate), use `--fix-local`:
+```sh
+npx git-detect-case-change --fix-local
+```
+
+This renames your local files to match Git's case instead of staging changes.
+
+### Options
+
 #### Dry run
-Run with `--dry` to see what files would be renamed before staging them:
+Run with `--dry` (or `-d`) to see what would be changed without making any modifications:
 ```sh
 npx git-detect-case-change --dry
+npx git-detect-case-change --fix-local --dry
 ```
 
 #### Scoping files
@@ -42,12 +54,19 @@ This script automates case-change detection for Git.
 ## How does it work?
 1. Get the case-sensitive file paths from the current Git project:
     ```sh
-    git ls-tree --name-only -r HEAD
+    git ls-tree --name-only -z -r HEAD
     ```
+    (Uses `-z` for NUL-terminated output to handle filenames with spaces, quotes, or special characters)
 
 2. Check each file path with [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to find a case-insensitive match.
+   - Files are processed in batches of 100 to avoid system file descriptor limits on large repositories.
 
-3. If the path exists with a different case, register the change with Git:
-    ```sh
-    git mv <old-path> <new-path>
-    ```
+3. If the path exists with a different case:
+    - **Default mode**: Stage the change with Git:
+        ```sh
+        git mv <old-path> <new-path>
+        ```
+    - **Fix local mode**: Rename the filesystem file to match Git:
+        ```sh
+        fs.rename(<local-path>, <git-path>)
+        ```
