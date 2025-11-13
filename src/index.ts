@@ -105,7 +105,15 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 					] as [string, string | false];
 				} catch (error) {
 					// Handle permission errors or other fs errors gracefully
-					console.error(`\nWarning: Could not check ${filePath}: ${(error as Error).message}`);
+					// Clear current line before printing error to avoid garbled output
+					if (gitFiles.length > BATCH_SIZE) {
+						process.stderr.write('\r\x1b[K');
+					}
+					console.error(`Warning: Could not check ${filePath}: ${(error as Error).message}`);
+					// Reprint progress line after error
+					if (gitFiles.length > BATCH_SIZE) {
+						process.stderr.write(`\rScanning files: ${batchNumber}/${totalBatches} batches...`);
+					}
 					return [filePath, false] as [string, string | false];
 				}
 			}),
@@ -114,7 +122,7 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 	}
 
 	if (gitFiles.length > BATCH_SIZE) {
-		process.stderr.write('\n');
+		process.stderr.write('\r\x1b[K');
 	}
 
 	const caseDifferentFiles = result.filter(
@@ -141,7 +149,12 @@ const getGitTreeFiles = async (scopePath?: string[]) => {
 				}
 			} else {
 				// Stage local change to Git (current behavior)
-				await spawn('git', ['mv', gitPath, localPath]);
+				try {
+					await spawn('git', ['mv', gitPath, localPath]);
+				} catch (error) {
+					console.error(`Failed to stage ${gitPath} -> ${localPath}: ${(error as Error).message}`);
+					continue;
+				}
 			}
 		}
 

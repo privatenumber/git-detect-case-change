@@ -483,4 +483,57 @@ describe('Error handling', ({ test }) => {
 			expect(result.exitCode).not.toBe(0);
 		}
 	});
+
+	test('continues processing after fs.rename failure in fix-local mode', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/file1.ts': 'export const file1 = true;',
+			'src/file2.ts': 'export const file2 = true;',
+			'readonly/.gitkeep': '',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change case for both files
+		await fixture.rm('src/file1.ts');
+		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
+		await fixture.rm('src/file2.ts');
+		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
+
+		// Make readonly directory readonly to cause fs.rename to fail
+		await spawn('chmod', ['555', `${fixture.path}/readonly`]);
+
+		// Change case in readonly directory
+		await spawn('chmod', ['755', `${fixture.path}/readonly`]);
+		await fixture.writeFile('readonly/TEST.txt', 'test');
+		await git('add', ['readonly/TEST.txt']);
+		await git('commit', ['-m', 'Add readonly file']);
+		await fixture.rm('readonly/TEST.txt');
+		await fixture.writeFile('readonly/test.txt', 'test');
+		await spawn('chmod', ['555', `${fixture.path}/readonly`]);
+
+		// Run detection with --fix-local - should fail on readonly but succeed on others
+		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		// Restore permissions for cleanup
+		await spawn('chmod', ['755', `${fixture.path}/readonly`]);
+
+		// Should show error for readonly/test.txt but success for others
+		expect(result.stderr).toMatch(/Failed to rename/);
+		expect(result.stdout).toMatch('src/FILE1.ts -> src/file1.ts');
+		expect(result.stdout).toMatch('src/FILE2.ts -> src/file2.ts');
+	});
 });
