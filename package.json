@@ -20,21 +20,13 @@
 	"files": [
 		"dist"
 	],
-	"type": "module",
 	"bin": "dist/index.cjs",
 	"packageManager": "pnpm@10.22.0+sha512.bf049efe995b28f527fd2b41ae0474ce29186f7edcb3bf545087bd61fbbebb2bf75362d1307fda09c2d288e1e499787ac12d4fcb617a974718a6051f2eee741c",
 	"scripts": {
-		"prepare": "simple-git-hooks",
 		"build": "pkgroll --minify",
 		"lint": "lintroll",
 		"type-check": "tsc",
 		"prepack": "pnpm build && clean-pkg-json"
-	},
-	"simple-git-hooks": {
-		"pre-commit": "pnpm lint-staged"
-	},
-	"lint-staged": {
-		"*.{js,ts}": "eslint"
 	},
 	"devDependencies": {
 		"@types/node": "^24.10.1",
@@ -42,10 +34,8 @@
 		"cleye": "^1.3.4",
 		"execa": "^6.1.0",
 		"fs.promises.exists": "^1.1.4",
-		"lint-staged": "^13.3.0",
 		"lintroll": "^1.24.3",
 		"pkgroll": "^2.20.1",
-		"simple-git-hooks": "^2.8.1",
 		"typescript": "^5.9.3"
 	}
 }
