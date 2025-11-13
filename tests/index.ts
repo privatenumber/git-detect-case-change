@@ -1,6 +1,8 @@
+import type fs from 'node:fs';
 import { describe, expect } from 'manten';
 import { createFixture } from 'fs-fixture';
 import spawn, { type SubprocessError } from 'nano-spawn';
+import { isFsCaseSensitive } from 'is-fs-case-sensitive';
 import { createGit } from './utils/create-git.js';
 
 const gitDetectCaseChangePath = new URL('../dist/index.cjs', import.meta.url).pathname;
@@ -17,7 +19,30 @@ const gitDetectCaseChange = async (
 );
 
 describe('git-detect-case-change', ({ test }) => {
-	test('detects basic case change', async ({ onTestFail }) => {
+	test('skips on case-sensitive filesystem', async () => {
+		// Mock a case-sensitive filesystem
+		const mockFs: Pick<typeof fs, 'existsSync' | 'writeFileSync' | 'unlinkSync'> = {
+			existsSync: (path) => {
+				// Simulate case-sensitive behavior: 'test' and 'TEST' are different files
+				const pathString = path instanceof URL ? path.pathname : path.toString();
+				return pathString.endsWith('test') || pathString.endsWith('TEST');
+			},
+			writeFileSync: () => {},
+			unlinkSync: () => {},
+		};
+
+		const isCaseSensitive = isFsCaseSensitive(undefined, mockFs, false);
+		expect(isCaseSensitive).toBe(true);
+	});
+
+	test('detects basic case change', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
 		await using fixture = await createFixture({
 			'src/index.ts': 'export const main = true;',
 		});
@@ -46,7 +71,14 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toMatch(/^R/); // Rename staged
 	});
 
-	test('dry run mode does not stage changes', async ({ onTestFail }) => {
+	test('dry run mode does not stage changes', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
 		await using fixture = await createFixture({
 			'src/utils.ts': 'export const util = true;',
 		});
@@ -105,7 +137,14 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toMatch('src/helper.ts -> src/HELPER.ts');
 	});
 
-	test('handles multiple case changes', async ({ onTestFail }) => {
+	test('handles multiple case changes', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
 		await using fixture = await createFixture({
 			'src/file1.ts': 'export const file1 = true;',
 			'src/file2.ts': 'export const file2 = true;',
@@ -148,7 +187,14 @@ describe('git-detect-case-change', ({ test }) => {
 });
 
 describe('--fix-local mode', ({ test }) => {
-	test('renames local files to match Git case', async ({ onTestFail }) => {
+	test('renames local files to match Git case', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
 		await using fixture = await createFixture({
 			'src/index.ts': 'export const main = true;',
 		});
@@ -177,7 +223,14 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe('');
 	});
 
-	test('dry run does not rename files', async ({ onTestFail }) => {
+	test('dry run does not rename files', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
 		await using fixture = await createFixture({
 			'src/utils.ts': 'export const util = true;',
 		});
@@ -206,7 +259,14 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe(''); // Git can't see case-only differences on case-insensitive FS
 	});
 
-	test('handles multiple files', async ({ onTestFail }) => {
+	test('handles multiple files', async ({ onTestFail, onTestFinish }) => {
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
 		await using fixture = await createFixture({
 			'src/file1.ts': 'export const file1 = true;',
 			'src/file2.ts': 'export const file2 = true;',
