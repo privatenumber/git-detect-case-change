@@ -17,6 +17,9 @@
 		"name": "Hiroki Osame",
 		"email": "hiroki.osame@gmail.com"
 	},
+	"engines": {
+		"node": ">=20.18.0"
+	},
 	"files": [
 		"dist"
 	],

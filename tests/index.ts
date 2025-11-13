@@ -137,6 +137,43 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toMatch('src/helper.ts -> src/HELPER.ts');
 	});
 
+	test('skips already-staged moves that were modified (RM status)', async ({ onTestFail }) => {
+		await using fixture = await createFixture({
+			'src/utils.ts': 'export const utils = true;',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		// Commit the file
+		await git('add', ['src/utils.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Manually stage the case change with git mv
+		await git('mv', ['src/utils.ts', 'src/UTILS.ts']);
+
+		// Modify the file after renaming (creates RM status)
+		await fixture.writeFile('src/UTILS.ts', 'export const utils = false;');
+
+		// Verify we have RM status
+		const statusBefore = await git('status', ['--porcelain']);
+		expect(statusBefore).toMatch(/^RM/);
+
+		// Run detection (should skip already-staged move even with modification)
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		// Should not output anything (already staged)
+		expect(result.stdout).toBe('');
+
+		// Verify still staged with modification (not re-moved)
+		const statusAfter = await git('status', ['--porcelain']);
+		expect(statusAfter).toMatch(/^RM/);
+		expect(statusAfter).toMatch('src/utils.ts -> src/UTILS.ts');
+	});
+
 	test('handles multiple case changes', async ({ onTestFail, onTestFinish }) => {
 		if (isFsCaseSensitive()) {
 			onTestFinish(() => {
