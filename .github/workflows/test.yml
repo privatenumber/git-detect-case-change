@@ -13,24 +13,24 @@ jobs:
     timeout-minutes: 10
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Use Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version-file: '.nvmrc'
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
 
-    - name: Setup pnpm
-      uses: pnpm/action-setup@v4
-      with:
-        run_install: true
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          run_install: true
 
-    - name: Type check
-      run: pnpm type-check
+      - name: Type check
+        run: pnpm type-check
 
-    - name: Build
-      run: pnpm build
+      - name: Build
+        run: pnpm build
 
-    - name: Lint
-      run: pnpm lint
+      - name: Lint
+        run: pnpm lint
