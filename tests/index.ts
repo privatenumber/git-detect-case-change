@@ -529,4 +529,60 @@ describe('Error handling', ({ test }) => {
 		expect(result.stdout).toMatch('src/FILE1.ts -> src/file1.ts');
 		expect(result.stdout).toMatch('src/FILE2.ts -> src/file2.ts');
 	});
+
+	test('continues processing after git mv failure in default mode', async ({ onTestFail, onTestFinish }) => {
+		if (process.platform === 'win32') {
+			console.log('Skipped: chmod does not work on Windows');
+			return;
+		}
+
+		if (isFsCaseSensitive()) {
+			onTestFinish(() => {
+				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/file1.ts': 'export const file1 = true;',
+			'src/file2.ts': 'export const file2 = true;',
+			'readonly/test.txt': 'test',
+		});
+
+		const git = createGit(fixture.path);
+		await git.init();
+
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change case for all files
+		await fixture.rm('src/file1.ts');
+		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
+		await fixture.rm('src/file2.ts');
+		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
+		await fixture.rm('readonly/test.txt');
+		await fixture.writeFile('readonly/TEST.txt', 'test');
+
+		// Make readonly directory readonly to cause git mv to fail
+		await spawn('chmod', ['555', `${fixture.path}/readonly`]);
+
+		// Run detection in default mode - should fail on readonly but succeed on others
+		const result = await gitDetectCaseChange(fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		// Restore permissions for cleanup
+		await spawn('chmod', ['755', `${fixture.path}/readonly`]);
+
+		// Should show error for readonly/test.txt but success for others
+		expect(result.stderr).toMatch(/Failed to stage/);
+		expect(result.stdout).toMatch('src/file1.ts -> src/FILE1.ts');
+		expect(result.stdout).toMatch('src/file2.ts -> src/FILE2.ts');
+
+		// Verify successful files were staged
+		const status = await git('status', ['--porcelain']);
+		expect(status).toMatch(/R.*file1\.ts.*FILE1\.ts/);
+		expect(status).toMatch(/R.*file2\.ts.*FILE2\.ts/);
+	});
 });
