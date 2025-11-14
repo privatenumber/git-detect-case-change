@@ -24,10 +24,25 @@ export const applyCaseChanges = async ({
 		if (!dry) {
 			if (fixLocal) {
 				// Rename filesystem file to match Git case
+				// Use two-step rename for case-only changes on case-insensitive filesystems
+				const tempPath = `${localPath}.tmp-${process.pid}-${Date.now()}`;
 				try {
-					await fs.rename(localPath, gitPath);
+					await fs.rename(localPath, tempPath);
+					await fs.rename(tempPath, gitPath);
 				} catch (error) {
 					console.error(`Failed to rename ${localPath} -> ${gitPath}: ${(error as Error).message}`);
+
+					// ROLLBACK: Attempt to restore the file from the temp path
+					try {
+						await fs.access(tempPath);
+						await fs.rename(tempPath, localPath);
+						console.error(`Restored ${localPath} from temporary file.`);
+					} catch (rollbackError) {
+						console.error(
+							`CRITICAL: Failed to restore ${localPath} from ${tempPath}. File may be lost!`,
+							(rollbackError as Error).message,
+						);
+					}
 					continue;
 				}
 			} else {
