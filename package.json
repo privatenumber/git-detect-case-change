@@ -17,9 +17,6 @@
 		"name": "Hiroki Osame",
 		"email": "hiroki.osame@gmail.com"
 	},
-	"engines": {
-		"node": ">=20.18.0"
-	},
 	"files": [
 		"dist"
 	],
@@ -31,6 +28,9 @@
 		"type-check": "tsc",
 		"test": "tsx tests",
 		"prepack": "pnpm build && clean-pkg-json"
+	},
+	"engines": {
+		"node": ">=20.18.0"
 	},
 	"devDependencies": {
 		"@types/node": "^24.10.1",
