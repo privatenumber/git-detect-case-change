@@ -1,6 +1,7 @@
+import { fileURLToPath } from 'node:url';
 import spawn, { type SubprocessError } from 'nano-spawn';
 
-const gitDetectCaseChangePath = new URL('../../dist/index.cjs', import.meta.url).pathname;
+const gitDetectCaseChangePath = fileURLToPath(new URL('../../dist/index.cjs', import.meta.url));
 
 export const gitDetectCaseChange = async (
 	fixturePath: string,
