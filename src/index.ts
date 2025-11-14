@@ -1,3 +1,5 @@
+console.log('DEBUG: Script loaded');
+
 import { cli } from 'cleye';
 import packageJson from '../package.json' with { type: 'json' };
 import { getMovedFiles } from './utils/get-moved-files.js';
@@ -7,8 +9,10 @@ import { applyCaseChanges } from './utils/apply-case-changes.js';
 
 const { version, description } = packageJson;
 
+console.log('DEBUG: About to run main function');
+
 (async () => {
-	console.error('DEBUG: Starting git-detect-case-change');
+	console.log('DEBUG: Starting git-detect-case-change');
 
 	const argv = cli({
 		name: 'git-detect-case-change',
