@@ -1,5 +1,3 @@
-console.log('DEBUG: Script loaded');
-
 import { cli } from 'cleye';
 import packageJson from '../package.json' with { type: 'json' };
 import { getMovedFiles } from './utils/get-moved-files.js';
@@ -9,65 +7,44 @@ import { applyCaseChanges } from './utils/apply-case-changes.js';
 
 const { version, description } = packageJson;
 
-console.log('DEBUG: About to run main function');
-
 (async () => {
-	try {
-		console.log('DEBUG: Starting git-detect-case-change');
+	const argv = cli({
+		name: 'git-detect-case-change',
 
-		const argv = cli({
-			name: 'git-detect-case-change',
+		version,
 
-			version,
+		parameters: ['--', '[paths...]'],
 
-			parameters: ['--', '[paths...]'],
-
-			flags: {
-				dry: {
-					type: Boolean,
-					default: false,
-					alias: 'd',
-					description: 'Dry run mode',
-				},
-				fixLocal: {
-					type: Boolean,
-					default: false,
-					description: 'Rename local files to match Git case (instead of staging local changes)',
-				},
+		flags: {
+			dry: {
+				type: Boolean,
+				default: false,
+				alias: 'd',
+				description: 'Dry run mode',
 			},
-
-			help: {
-				description,
+			fixLocal: {
+				type: Boolean,
+				default: false,
+				description: 'Rename local files to match Git case (instead of staging local changes)',
 			},
-		});
+		},
 
-		const { dry, fixLocal } = argv.flags;
-		const { paths } = argv._;
+		help: {
+			description,
+		},
+	});
 
-		console.log(`DEBUG: Flags - dry: ${dry}, fixLocal: ${fixLocal}, paths: ${paths || 'undefined'}`);
+	const { dry, fixLocal } = argv.flags;
+	const { paths } = argv._;
 
-		const movedFiles = await getMovedFiles(paths);
-		console.log(`DEBUG: Found ${movedFiles.size} already moved files`);
+	const movedFiles = await getMovedFiles(paths);
+	const gitFiles = await getGitTreeFiles(paths);
+	const caseDifferentFiles = await checkCaseDifferences(gitFiles);
 
-		const gitFiles = await getGitTreeFiles(paths);
-		console.log(`DEBUG: Got ${gitFiles.length} files from git`);
-
-		const caseDifferentFiles = await checkCaseDifferences(gitFiles);
-		console.log(`DEBUG: Final case different files: ${caseDifferentFiles.length}`);
-
-		await applyCaseChanges({
-			caseDifferentFiles,
-			movedFiles,
-			dry,
-			fixLocal,
-		});
-
-		console.log('DEBUG: Finished');
-	} catch (error) {
-		console.log('DEBUG: ERROR CAUGHT:', error);
-		throw error;
-	}
-})().catch((error) => {
-	console.log('DEBUG: UNCAUGHT ERROR:', error);
-	process.exit(1);
-});
+	await applyCaseChanges({
+		caseDifferentFiles,
+		movedFiles,
+		dry,
+		fixLocal,
+	});
+})();

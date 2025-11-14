@@ -71,8 +71,6 @@ describe('git-detect-case-change', ({ test }) => {
 			'src/utils.ts': 'export const util = true;',
 		});
 
-		console.log('DEBUG TEST: Fixture path:', fixture.path);
-
 		const git = createGit(fixture.path);
 		await git.init();
 
@@ -84,10 +82,8 @@ describe('git-detect-case-change', ({ test }) => {
 		await fixture.rm('src/utils.ts');
 		await fixture.writeFile('src/UTILS.ts', 'export const util = true;');
 
-		console.log('DEBUG TEST: About to run gitDetectCaseChange');
 		// Run detection with --dry
 		const result = await gitDetectCaseChange(fixture.path, ['--dry']);
-		console.log('DEBUG TEST: Result:', result);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
@@ -480,6 +476,13 @@ describe('Error handling', ({ test }) => {
 		if (isFsCaseSensitive()) {
 			onTestFinish(() => {
 				console.log('Skipped: Test only runs on case-insensitive filesystems');
+			});
+			return;
+		}
+
+		if (process.platform === 'win32') {
+			onTestFinish(() => {
+				console.log('Skipped: chmod does not work on Windows');
 			});
 			return;
 		}

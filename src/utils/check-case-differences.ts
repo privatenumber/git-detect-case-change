@@ -3,7 +3,6 @@ import exists from 'fs.promises.exists';
 const BATCH_SIZE = 100;
 
 export const checkCaseDifferences = async (gitFiles: string[]) => {
-	console.error(`DEBUG: Checking ${gitFiles.length} files from git`);
 	const result: [string, string | false][] = [];
 
 	for (let i = 0; i < gitFiles.length; i += BATCH_SIZE) {
@@ -11,11 +10,9 @@ export const checkCaseDifferences = async (gitFiles: string[]) => {
 		const batchResults = await Promise.all(
 			batch.map(async (filePath) => {
 				try {
-					const actualPath = await exists(filePath, false);
-					console.error(`DEBUG: Git path: ${filePath}, Actual path: ${actualPath || 'false'}`);
 					return [
 						filePath,
-						actualPath,
+						await exists(filePath, false),
 					] as [string, string | false];
 				} catch (error) {
 					// Handle permission errors or other fs errors gracefully
@@ -27,12 +24,9 @@ export const checkCaseDifferences = async (gitFiles: string[]) => {
 		result.push(...batchResults);
 	}
 
-	const filtered = result.filter(
+	return result.filter(
 		([oldFilePath, newFilePath]) => (
 			newFilePath && (oldFilePath !== newFilePath)
 		),
 	) as string[][];
-
-	console.error(`DEBUG: Found ${filtered.length} case differences`);
-	return filtered;
 };
