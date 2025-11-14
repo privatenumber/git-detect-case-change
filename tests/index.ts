@@ -1,33 +1,14 @@
-import type fs from 'node:fs';
 import { describe, expect } from 'manten';
 import { createFixture } from 'fs-fixture';
-import spawn from 'nano-spawn';
 import { isFsCaseSensitive } from 'is-fs-case-sensitive';
 import { createGit } from './utils/create-git.js';
 import { gitDetectCaseChange } from './utils/git-detect-case-change.js';
+import { chmod } from './utils/chmod.js';
 
 describe('git-detect-case-change', ({ test }) => {
-	test('skips on case-sensitive filesystem', async () => {
-		// Mock a case-sensitive filesystem
-		const mockFs: Pick<typeof fs, 'existsSync' | 'writeFileSync' | 'unlinkSync'> = {
-			existsSync: (path) => {
-				// Simulate case-sensitive behavior: 'test' and 'TEST' are different files
-				const pathString = path instanceof URL ? path.pathname : path.toString();
-				return pathString.endsWith('test') || pathString.endsWith('TEST');
-			},
-			writeFileSync: () => {},
-			unlinkSync: () => {},
-		};
-
-		const isCaseSensitive = isFsCaseSensitive(undefined, mockFs, false);
-		expect(isCaseSensitive).toBe(true);
-	});
-
-	test('detects basic case change', async ({ onTestFail, onTestFinish }) => {
+	test('detects basic case change', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -35,16 +16,14 @@ describe('git-detect-case-change', ({ test }) => {
 			'src/index.ts': 'export const main = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit the file with lowercase
 		await git('add', ['src/index.ts']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Rename to uppercase (case-insensitive filesystem won't see change)
-		await fixture.rm('src/index.ts');
-		await fixture.writeFile('src/INDEX.ts', 'export const main = true;');
+		await fixture.mv('src/index.ts', 'src/INDEX.ts');
 
 		// Run detection
 		const result = await gitDetectCaseChange(fixture.path);
@@ -59,11 +38,9 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toMatch(/^R/); // Rename staged
 	});
 
-	test('dry run mode does not stage changes', async ({ onTestFail, onTestFinish }) => {
+	test('dry run mode does not stage changes', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -71,16 +48,14 @@ describe('git-detect-case-change', ({ test }) => {
 			'src/utils.ts': 'export const util = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit the file
 		await git('add', ['src/utils.ts']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Rename case
-		await fixture.rm('src/utils.ts');
-		await fixture.writeFile('src/UTILS.ts', 'export const util = true;');
+		await fixture.mv('src/utils.ts', 'src/UTILS.ts');
 
 		// Run detection with --dry
 		const result = await gitDetectCaseChange(fixture.path, ['--dry']);
@@ -100,8 +75,7 @@ describe('git-detect-case-change', ({ test }) => {
 			'src/helper.ts': 'export const helper = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit the file
 		await git('add', ['src/helper.ts']);
@@ -130,8 +104,7 @@ describe('git-detect-case-change', ({ test }) => {
 			'src/utils.ts': 'export const utils = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit the file
 		await git('add', ['src/utils.ts']);
@@ -162,36 +135,30 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(statusAfter).toMatch('src/utils.ts -> src/UTILS.ts');
 	});
 
-	test('handles multiple case changes', async ({ onTestFail, onTestFinish }) => {
+	test('handles multiple case changes', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
 		await using fixture = await createFixture({
-			'src/file1.ts': 'export const file1 = true;',
-			'src/file2.ts': 'export const file2 = true;',
+			src: {
+				'file1.ts': 'export const file1 = true;',
+				'file2.ts': 'export const file2 = true;',
+			},
 			'lib/file3.ts': 'export const file3 = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit all files
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Rename all to uppercase
-		await fixture.rm('src/file1.ts');
-		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
-
-		await fixture.rm('src/file2.ts');
-		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
-
-		await fixture.rm('lib/file3.ts');
-		await fixture.writeFile('lib/FILE3.ts', 'export const file3 = true;');
+		await fixture.mv('src/file1.ts', 'src/FILE1.ts');
+		await fixture.mv('src/file2.ts', 'src/FILE2.ts');
+		await fixture.mv('lib/file3.ts', 'lib/FILE3.ts');
 
 		// Run detection
 		const result = await gitDetectCaseChange(fixture.path);
@@ -212,11 +179,9 @@ describe('git-detect-case-change', ({ test }) => {
 });
 
 describe('--fix-local mode', ({ test }) => {
-	test('renames local files to match Git case', async ({ onTestFail, onTestFinish }) => {
+	test('renames local files to match Git case', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -224,16 +189,14 @@ describe('--fix-local mode', ({ test }) => {
 			'src/index.ts': 'export const main = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit the file with lowercase
 		await git('add', ['src/index.ts']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Simulate filesystem having different case (e.g., after pull from remote)
-		await fixture.rm('src/index.ts');
-		await fixture.writeFile('src/INDEX.ts', 'export const main = true;');
+		await fixture.mv('src/index.ts', 'src/INDEX.ts');
 
 		// Run with --fix-local to rename filesystem to match Git
 		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
@@ -248,11 +211,9 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe('');
 	});
 
-	test('dry run does not rename files', async ({ onTestFail, onTestFinish }) => {
+	test('dry run does not rename files', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -260,16 +221,14 @@ describe('--fix-local mode', ({ test }) => {
 			'src/utils.ts': 'export const util = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit the file
 		await git('add', ['src/utils.ts']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Change filesystem case
-		await fixture.rm('src/utils.ts');
-		await fixture.writeFile('src/UTILS.ts', 'export const util = true;');
+		await fixture.mv('src/utils.ts', 'src/UTILS.ts');
 
 		// Run with --fix-local --dry
 		const result = await gitDetectCaseChange(fixture.path, ['--fix-local', '--dry']);
@@ -284,36 +243,30 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe(''); // Git can't see case-only differences on case-insensitive FS
 	});
 
-	test('handles multiple files', async ({ onTestFail, onTestFinish }) => {
+	test('handles multiple files', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
 		await using fixture = await createFixture({
-			'src/file1.ts': 'export const file1 = true;',
-			'src/file2.ts': 'export const file2 = true;',
+			src: {
+				'file1.ts': 'export const file1 = true;',
+				'file2.ts': 'export const file2 = true;',
+			},
 			'lib/file3.ts': 'export const file3 = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		// Commit all files
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Change all to uppercase on filesystem
-		await fixture.rm('src/file1.ts');
-		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
-
-		await fixture.rm('src/file2.ts');
-		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
-
-		await fixture.rm('lib/file3.ts');
-		await fixture.writeFile('lib/FILE3.ts', 'export const file3 = true;');
+		await fixture.mv('src/file1.ts', 'src/FILE1.ts');
+		await fixture.mv('src/file2.ts', 'src/FILE2.ts');
+		await fixture.mv('lib/file3.ts', 'lib/FILE3.ts');
 
 		// Run with --fix-local
 		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
@@ -333,11 +286,9 @@ describe('--fix-local mode', ({ test }) => {
 });
 
 describe('Path complexity', ({ test }) => {
-	test('handles nested directories', async ({ onTestFail, onTestFinish }) => {
+	test('handles nested directories', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -345,15 +296,13 @@ describe('Path complexity', ({ test }) => {
 			'src/components/ui/Button.tsx': 'export const Button = () => {};',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Change case deep in directory tree
-		await fixture.rm('src/components/ui/Button.tsx');
-		await fixture.writeFile('src/components/ui/BUTTON.tsx', 'export const Button = () => {};');
+		await fixture.mv('src/components/ui/Button.tsx', 'src/components/ui/BUTTON.tsx');
 
 		const result = await gitDetectCaseChange(fixture.path);
 		onTestFail(() => {
@@ -366,11 +315,9 @@ describe('Path complexity', ({ test }) => {
 		expect(status).toMatch(/^R/);
 	});
 
-	test('handles files with spaces', async ({ onTestFail, onTestFinish }) => {
+	test('handles files with spaces', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -378,15 +325,13 @@ describe('Path complexity', ({ test }) => {
 			'my file.ts': 'export const main = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Change case
-		await fixture.rm('my file.ts');
-		await fixture.writeFile('MY FILE.ts', 'export const main = true;');
+		await fixture.mv('my file.ts', 'MY FILE.ts');
 
 		const result = await gitDetectCaseChange(fixture.path);
 		onTestFail(() => {
@@ -399,11 +344,9 @@ describe('Path complexity', ({ test }) => {
 		expect(status).toMatch(/^R/);
 	});
 
-	test('handles partial case changes', async ({ onTestFail, onTestFinish }) => {
+	test('handles partial case changes', async ({ onTestFail }) => {
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
@@ -411,15 +354,13 @@ describe('Path complexity', ({ test }) => {
 			'aBcDef.ts': 'export const main = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Partial case change (not all letters flipped)
-		await fixture.rm('aBcDef.ts');
-		await fixture.writeFile('AbCdEf.ts', 'export const main = true;');
+		await fixture.mv('aBcDef.ts', 'AbCdEf.ts');
 
 		const result = await gitDetectCaseChange(fixture.path);
 		onTestFail(() => {
@@ -456,8 +397,7 @@ describe('Error handling', ({ test }) => {
 			'file.ts': 'export const main = true;',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		await createGit(fixture.path);
 
 		// No commits yet, so no HEAD
 		const result = await gitDetectCaseChange(fixture.path);
@@ -472,48 +412,44 @@ describe('Error handling', ({ test }) => {
 		}
 	});
 
-	test('continues processing after fs.rename failure in fix-local mode', async ({ onTestFail, onTestFinish }) => {
+	test('continues processing after fs.rename failure in fix-local mode', async ({ onTestFail }) => {
 		if (process.platform === 'win32') {
 			console.log('Skipped: chmod does not work on Windows');
 			return;
 		}
 
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
 		await using fixture = await createFixture({
-			'src/file1.ts': 'export const file1 = true;',
-			'src/file2.ts': 'export const file2 = true;',
+			src: {
+				'file1.ts': 'export const file1 = true;',
+				'file2.ts': 'export const file2 = true;',
+			},
 			'readonly/.gitkeep': '',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Change case for both files
-		await fixture.rm('src/file1.ts');
-		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
-		await fixture.rm('src/file2.ts');
-		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
+		await fixture.mv('src/file1.ts', 'src/FILE1.ts');
+		await fixture.mv('src/file2.ts', 'src/FILE2.ts');
 
 		// Make readonly directory readonly to cause fs.rename to fail
-		await spawn('chmod', ['555', `${fixture.path}/readonly`]);
+		await chmod('555', fixture.getPath('readonly'));
 
 		// Change case in readonly directory
-		await spawn('chmod', ['755', `${fixture.path}/readonly`]);
+		await chmod('755', fixture.getPath('readonly'));
 		await fixture.writeFile('readonly/TEST.txt', 'test');
 		await git('add', ['readonly/TEST.txt']);
 		await git('commit', ['-m', 'Add readonly file']);
-		await fixture.rm('readonly/TEST.txt');
-		await fixture.writeFile('readonly/test.txt', 'test');
-		await spawn('chmod', ['555', `${fixture.path}/readonly`]);
+		await fixture.mv('readonly/TEST.txt', 'readonly/test.txt');
+		await chmod('555', fixture.getPath('readonly'));
 
 		// Run detection with --fix-local - should fail on readonly but succeed on others
 		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
@@ -522,7 +458,7 @@ describe('Error handling', ({ test }) => {
 		});
 
 		// Restore permissions for cleanup
-		await spawn('chmod', ['755', `${fixture.path}/readonly`]);
+		await chmod('755', fixture.getPath('readonly'));
 
 		// Should show error for readonly/test.txt but success for others
 		expect(result.stderr).toMatch(/Failed to rename/);
@@ -530,41 +466,37 @@ describe('Error handling', ({ test }) => {
 		expect(result.stdout).toMatch('src/FILE2.ts -> src/file2.ts');
 	});
 
-	test('continues processing after git mv failure in default mode', async ({ onTestFail, onTestFinish }) => {
+	test('continues processing after git mv failure in default mode', async ({ onTestFail }) => {
 		if (process.platform === 'win32') {
 			console.log('Skipped: chmod does not work on Windows');
 			return;
 		}
 
 		if (isFsCaseSensitive()) {
-			onTestFinish(() => {
-				console.log('Skipped: Test only runs on case-insensitive filesystems');
-			});
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
 		}
 
 		await using fixture = await createFixture({
-			'src/file1.ts': 'export const file1 = true;',
-			'src/file2.ts': 'export const file2 = true;',
+			src: {
+				'file1.ts': 'export const file1 = true;',
+				'file2.ts': 'export const file2 = true;',
+			},
 			'readonly/test.txt': 'test',
 		});
 
-		const git = createGit(fixture.path);
-		await git.init();
+		const git = await createGit(fixture.path);
 
 		await git('add', ['.']);
 		await git('commit', ['-m', 'Initial commit']);
 
 		// Change case for all files
-		await fixture.rm('src/file1.ts');
-		await fixture.writeFile('src/FILE1.ts', 'export const file1 = true;');
-		await fixture.rm('src/file2.ts');
-		await fixture.writeFile('src/FILE2.ts', 'export const file2 = true;');
-		await fixture.rm('readonly/test.txt');
-		await fixture.writeFile('readonly/TEST.txt', 'test');
+		await fixture.mv('src/file1.ts', 'src/FILE1.ts');
+		await fixture.mv('src/file2.ts', 'src/FILE2.ts');
+		await fixture.mv('readonly/test.txt', 'readonly/TEST.txt');
 
 		// Make readonly directory readonly to cause git mv to fail
-		await spawn('chmod', ['555', `${fixture.path}/readonly`]);
+		await chmod('555', fixture.getPath('readonly'));
 
 		// Run detection in default mode - should fail on readonly but succeed on others
 		const result = await gitDetectCaseChange(fixture.path);
@@ -573,7 +505,7 @@ describe('Error handling', ({ test }) => {
 		});
 
 		// Restore permissions for cleanup
-		await spawn('chmod', ['755', `${fixture.path}/readonly`]);
+		await chmod('755', fixture.getPath('readonly'));
 
 		// Should show error for readonly/test.txt but success for others
 		expect(result.stderr).toMatch(/Failed to stage/);

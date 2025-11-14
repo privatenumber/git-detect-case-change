@@ -1,6 +1,6 @@
 import spawn from 'nano-spawn';
 
-export const createGit = (
+export const createGit = async (
 	cwd: string,
 ) => {
 	const git = async (
@@ -15,11 +15,9 @@ export const createGit = (
 		return result.stdout.trim();
 	};
 
-	return Object.assign(git, {
-		init: async (args: string[] = []) => {
-			await git('init', args);
-			await git('config', ['user.name', 'name']);
-			await git('config', ['user.email', 'email']);
-		},
-	});
+	await git('init');
+	await git('config', ['user.name', 'name']);
+	await git('config', ['user.email', 'email']);
+
+	return git;
 };
