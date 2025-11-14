@@ -1,71 +1,112 @@
 # git-detect-case-change
 
-Detect and fix filename case changes in Git repos on macOS/Windows (case-insensitive file systems).
+Detect and fix case-only filename changes that Git can't see on macOS/Windows.
+
+On case-insensitive filesystems, renaming `utils.ts` → `Utils.ts` won't register in Git.
+
+This tool compares Git's tree with the filesystem and fixes mismatches in both directions.
 
 ```sh
-# Renamed foo.js → Foo.js but Git won't detect it?
-npx git-detect-case-change              # Stage the case change
-npx git-detect-case-change --fix-local  # Or fix local filesystem to match Git
+# Renamed foo.js → Foo.js but Git didn't notice?
+npx git-detect-case-change              # Stage the case change in Git
+npx git-detect-case-change --fix-local  # Rename local files to match Git
 ```
 
-<sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other cool projects I'm working on! ❤️</sub>
+<sub>Support this project by ⭐️ starring and sharing it. [Follow me](https://github.com/privatenumber) to see what other projects I'm working on.</sub>
 
-## What this tool does
+## Usage
 
-On macOS/Windows, the filesystem is case-insensitive. Git isn't.
+The CLI supports two main modes:
 
-Git **cannot detect filename case-only changes** like `/src/foo.js` → `/src/Foo.js`.
+```sh
+# Stage local case changes to Git (most common)
+npx git-detect-case-change
 
-This tool automatically finds and fixes these mismatches in **both directions**:
+# Rename local files to match Git's case (after pulling teammate's changes)
+npx git-detect-case-change --fix-local
 
-| You want to… | Use | What it does |
-|-------------|-----|--------------|
-| Stage local case changes to Git | `npx git-detect-case-change` | Runs `git mv old new` for each case change |
-| Fix local filesystem to match Git (e.g., after pulling changes) | `npx git-detect-case-change --fix-local` | Renames local files to Git's case |
+# See what would change without modifying anything
+npx git-detect-case-change --dry
+```
+
+Example output:
+
+```sh
+$ npx git-detect-case-change
+src/utils.ts -> src/Utils.ts
+lib/helper.js -> lib/Helper.js
+```
+
+## When to use it
+
+* Bundlers (Vite/Webpack/Rollup) error due to mismatched import casing
+* CI fails on Linux but your Mac build passes
+* Git doesn't show a rename even though you changed the file
+* Teammate pushed case-only changes and your local filesystem is out of sync
+
+## What it does
+
+This tool finds and fixes case mismatches between Git and the filesystem:
+
+| You want to…                                      | Command                                  | Effect                            |
+| ------------------------------------------------- | ---------------------------------------- | --------------------------------- |
+| Stage local case changes to Git                   | `npx git-detect-case-change`             | Stages the rename with `git mv`   |
+| Rename local files to match Git (e.g. after pull) | `npx git-detect-case-change --fix-local` | Renames local files to Git's case |
 
 ## Options
 
-**Dry run** — See what would change without modifying anything:
+Dry run:
+
 ```sh
 npx git-detect-case-change --dry
 npx git-detect-case-change --fix-local --dry
 ```
 
-**Scope to specific paths:**
+Limit to specific paths:
+
 ```sh
 npx git-detect-case-change -- <dir-or-file>
 ```
 
 <details>
-<summary><strong>Why does this happen?</strong></summary>
+<summary>Why Git misses case-only renames</summary>
 
-macOS and Windows default to case-insensitive file systems. Git respects the underlying filesystem, so it can't detect case-only renames without help.
+macOS and Windows default to case-insensitive filesystems. Git respects the underlying filesystem, so it can't reliably detect case-only renames.
 
 The official workaround is:
+
 ```sh
 git mv <old-path> <new-path>
 ```
 
-…but that's painful if many files changed or the renames weren't done through Git (e.g., automated refactoring tools).
+This gets tedious when:
 
-This tool automates case-change detection for Git. See [this StackOverflow discussion](https://stackoverflow.com/questions/17683458/how-do-i-commit-case-sensitive-only-filename-changes-in-git) for more context.
+* Many files changed at once
+* Renames came from automated refactors
+* You inherited case drift from someone else
+
+This tool automates that detection.
+See [this StackOverflow discussion](https://stackoverflow.com/questions/17683458/how-do-i-commit-case-sensitive-only-filename-changes-in-git) for more context.
 
 </details>
 
 <details>
-<summary><strong>How does it work?</strong></summary>
+<summary>How it works</summary>
 
-1. Get case-sensitive file paths from Git index:
-    ```sh
-    git ls-tree --name-only -z -r HEAD
-    ```
-    Uses `-z` for NUL-terminated output to handle filenames with spaces, quotes, or special characters.
+1. Reads file paths from Git's index with:
 
-2. Check each Git path with [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to find case-insensitive matches on the filesystem.
-   - Files are processed in batches of 100 to avoid file descriptor limits on large repos.
+   ```sh
+   git ls-tree --name-only -z -r HEAD
+   ```
 
-3. If the path exists with different case:
-    - **Default mode**: Stage with `git mv <old-path> <new-path>`
-    - **Fix local mode**: Rename filesystem file with `fs.rename(<local-path>, <git-path>)`
+   `-z` uses NUL terminators so filenames with spaces or special characters are safe.
+
+2. For each Git path, uses [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to look up the actual filesystem path in a case-insensitive way.
+   Files are processed in batches of 100 to avoid file descriptor limits on large repos.
+
+3. For each mismatch:
+
+   * Default mode: stage with `git mv <old-path> <new-path>`
+   * `--fix-local` mode: rename local file with `fs.rename(<local-path>, <git-path>)`
 
 </details>
