@@ -481,9 +481,7 @@ describe('Error handling', ({ test }) => {
 		}
 
 		if (process.platform === 'win32') {
-			onTestFinish(() => {
-				console.log('Skipped: chmod does not work on Windows');
-			});
+			console.log('Skipped: chmod does not work on Windows');
 			return;
 		}
 
