@@ -75,7 +75,7 @@ export const applyCaseChanges = async ({
 		}
 
 		console.log(fixLocal
-			? `Fixed: ${actualLocalPath} -> ${gitPath}`
+			? `Fixed: ${actualLocalPath.split(path.sep).join('/')} -> ${gitPath}`
 			: `${gitPath} -> ${localPath}`);
 	}
 };
