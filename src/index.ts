@@ -5,35 +5,33 @@ import { getGitTreeFiles } from './utils/get-git-tree-files.js';
 import { checkCaseDifferences } from './utils/check-case-differences.js';
 import { applyCaseChanges } from './utils/apply-case-changes.js';
 
-const { version, description } = packageJson;
+const { name, version, description } = packageJson;
 
-(async () => {
-	const argv = cli({
-		name: 'git-detect-case-change',
+cli({
+	name,
 
-		version,
+	version,
 
-		parameters: ['--', '[paths...]'],
+	parameters: ['--', '[paths...]'],
 
-		flags: {
-			dry: {
-				type: Boolean,
-				default: false,
-				alias: 'd',
-				description: 'Dry run mode',
-			},
-			fixLocal: {
-				type: Boolean,
-				default: false,
-				description: 'Rename local files to match Git case (instead of staging local changes)',
-			},
+	flags: {
+		dry: {
+			type: Boolean,
+			default: false,
+			alias: 'd',
+			description: 'Dry run mode',
 		},
-
-		help: {
-			description,
+		fixLocal: {
+			type: Boolean,
+			default: false,
+			description: 'Rename local files to match Git case (instead of staging local changes)',
 		},
-	});
+	},
 
+	help: {
+		description,
+	},
+}, async (argv) => {
 	const { dry, fixLocal } = argv.flags;
 	const { paths } = argv._;
 
@@ -47,4 +45,4 @@ const { version, description } = packageJson;
 		dry,
 		fixLocal,
 	});
-})();
+});
