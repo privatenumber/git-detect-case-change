@@ -314,10 +314,9 @@ describe('--fix-local mode', ({ test }) => {
 			console.log('Result:', result);
 		});
 
-		// Should fix all files (including folder paths)
-		expect(result.stdout).toMatch('Fixed: FOLDER1/File.txt -> Folder1/File.txt');
-		expect(result.stdout).toMatch('Fixed: FOLDER2/File1.txt -> Folder2/File1.txt');
-		expect(result.stdout).toMatch('Fixed: FOLDER2/File2.txt -> Folder2/File2.txt');
+		// Should fix directories (files move automatically with their parent directory)
+		expect(result.stdout).toMatch('Fixed: FOLDER1/ -> Folder1/');
+		expect(result.stdout).toMatch('Fixed: FOLDER2/ -> Folder2/');
 
 		// Verify git status is clean
 		const status = await git('status', ['--porcelain']);
