@@ -8,7 +8,7 @@ export const gitDetectCaseChange = async (
 	arguments_: string[] = [],
 ) => (
 	await spawn(
-		'node',
+		process.execPath,
 		[gitDetectCaseChangePath, ...arguments_],
 		{ cwd: fixturePath },
 	).catch(error => error as SubprocessError)
