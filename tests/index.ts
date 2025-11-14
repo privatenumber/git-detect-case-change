@@ -473,6 +473,11 @@ describe('Error handling', ({ test }) => {
 	});
 
 	test('continues processing after fs.rename failure in fix-local mode', async ({ onTestFail, onTestFinish }) => {
+		if (process.platform === 'win32') {
+			console.log('Skipped: chmod does not work on Windows');
+			return;
+		}
+
 		if (isFsCaseSensitive()) {
 			onTestFinish(() => {
 				console.log('Skipped: Test only runs on case-insensitive filesystems');
