@@ -318,6 +318,47 @@ describe('--fix-local mode', ({ test }) => {
 		expect(result.stdout).toMatch('Fixed: FOLDER1/ -> Folder1/');
 		expect(result.stdout).toMatch('Fixed: FOLDER2/ -> Folder2/');
 
+		// Should not have errors from stale paths
+		expect(result.stderr).toBe('');
+
+		// Verify git status is clean
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe('');
+	});
+
+	test('handles folder AND file case changes', async ({ onTestFail }) => {
+		if (isFsCaseSensitive()) {
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'Folder/file.txt': 'content',
+		});
+
+		const git = await createGit(fixture.path);
+
+		// Commit with lowercase
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		// Change BOTH folder and file case
+		await fixture.mv('Folder', 'FOLDER');
+		await fixture.mv('FOLDER/file.txt', 'FOLDER/FILE.txt');
+
+		// Run with --fix-local
+		const result = await gitDetectCaseChange(fixture.path, ['--fix-local']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		// Should fix both directory and file
+		expect(result.stdout).toMatch('Fixed: FOLDER/ -> Folder/');
+		expect(result.stdout).toMatch('Fixed: Folder/FILE.txt -> Folder/file.txt');
+
+		// Should not have errors
+		expect(result.stderr).toBe('');
+
 		// Verify git status is clean
 		const status = await git('status', ['--porcelain']);
 		expect(status).toBe('');

@@ -93,7 +93,7 @@ See [this StackOverflow discussion](https://stackoverflow.com/questions/17683458
 <details>
 <summary>How it works</summary>
 
-1. Reads file paths from Git's index with:
+1. **Reads file paths from Git's index:**
 
    ```sh
    git ls-tree --name-only -z -r HEAD
@@ -101,12 +101,20 @@ See [this StackOverflow discussion](https://stackoverflow.com/questions/17683458
 
    `-z` uses NUL terminators so filenames with spaces or special characters are safe.
 
-2. For each Git path, uses [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to look up the actual filesystem path in a case-insensitive way.
+2. **Detects case mismatches:**
+
+   For each Git path, uses [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to look up the actual filesystem path in a case-insensitive way.
    Files are processed in batches of 100 to avoid file descriptor limits on large repos.
 
-3. For each mismatch:
+3. **Applies fixes based on mode:**
 
-   * Default mode: stage with `git mv <old-path> <new-path>`
-   * `--fix-local` mode: rename local file with `fs.rename(<local-path>, <git-path>)`
+   * **Default mode:** Stages changes with `git mv <git-path> <local-path>`
+
+   * **`--fix-local` mode:** Renames local files/directories to match Git's case:
+
+     * **Directories first:** Extracts unique directory changes and renames them (deepest first)
+     * **Files second:** Renames remaining files with case-only differences
+     * **Two-step rename:** Uses temporary path (`file.tmp-<pid>-<timestamp>`) to work around case-insensitive filesystem limitations
+     * **Transactional rollback:** If the second rename fails, attempts to restore from temporary path to prevent data loss
 
 </details>

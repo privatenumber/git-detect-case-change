@@ -1,7 +1,7 @@
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import spawn from 'nano-spawn';
 import { extractDirectoryChanges } from './extract-directory-changes.js';
+import { safeCaseRename } from './safe-case-rename.js';
 
 type ApplyOptions = {
 	caseDifferentFiles: string[][];
@@ -22,25 +22,8 @@ export const applyCaseChanges = async ({
 
 		for (const { gitPath: gitDirectory, localPath: localDirectory } of directoryChanges) {
 			if (!dry) {
-				// Use two-step rename for case-only changes on case-insensitive filesystems
-				const tempPath = `${localDirectory}.tmp-${process.pid}-${Date.now()}`;
-				try {
-					await fs.rename(localDirectory, tempPath);
-					await fs.rename(tempPath, gitDirectory);
-				} catch (error) {
-					console.error(`Failed to rename directory ${localDirectory} -> ${gitDirectory}: ${(error as Error).message}`);
-
-					// ROLLBACK: Attempt to restore the directory from the temp path
-					try {
-						await fs.access(tempPath);
-						await fs.rename(tempPath, localDirectory);
-						console.error(`Restored ${localDirectory} from temporary directory.`);
-					} catch (rollbackError) {
-						console.error(
-							`CRITICAL: Failed to restore ${localDirectory} from ${tempPath}. Directory may be lost!`,
-							(rollbackError as Error).message,
-						);
-					}
+				const success = await safeCaseRename(localDirectory, gitDirectory, 'directory');
+				if (!success) {
 					continue;
 				}
 			}
@@ -56,39 +39,28 @@ export const applyCaseChanges = async ({
 			continue;
 		}
 
-		// In fix-local mode, skip files whose directory was already renamed
+		// In fix-local mode, recalculate actual filesystem path after directory renames
+		let actualLocalPath = localPath;
 		if (fixLocal) {
 			const gitDirectory = path.dirname(gitPath);
 			const localDirectory = path.dirname(localPath);
 
 			if (gitDirectory !== localDirectory && gitDirectory !== '.' && localDirectory !== '.') {
-				// Directory was renamed, file is already at correct location
-				continue;
+				// Directory was renamed, update the file path to reflect new location
+				const filename = path.basename(localPath);
+				actualLocalPath = path.join(gitDirectory, filename);
+
+				// If file basename also matches git (only directory changed), skip
+				if (actualLocalPath === gitPath) {
+					continue;
+				}
 			}
 		}
 
 		if (!dry) {
 			if (fixLocal) {
-				// Rename filesystem file to match Git case
-				// Use two-step rename for case-only changes on case-insensitive filesystems
-				const tempPath = `${localPath}.tmp-${process.pid}-${Date.now()}`;
-				try {
-					await fs.rename(localPath, tempPath);
-					await fs.rename(tempPath, gitPath);
-				} catch (error) {
-					console.error(`Failed to rename ${localPath} -> ${gitPath}: ${(error as Error).message}`);
-
-					// ROLLBACK: Attempt to restore the file from the temp path
-					try {
-						await fs.access(tempPath);
-						await fs.rename(tempPath, localPath);
-						console.error(`Restored ${localPath} from temporary file.`);
-					} catch (rollbackError) {
-						console.error(
-							`CRITICAL: Failed to restore ${localPath} from ${tempPath}. File may be lost!`,
-							(rollbackError as Error).message,
-						);
-					}
+				const success = await safeCaseRename(actualLocalPath, gitPath, 'file');
+				if (!success) {
 					continue;
 				}
 			} else {
@@ -103,7 +75,7 @@ export const applyCaseChanges = async ({
 		}
 
 		console.log(fixLocal
-			? `Fixed: ${localPath} -> ${gitPath}`
+			? `Fixed: ${actualLocalPath} -> ${gitPath}`
 			: `${gitPath} -> ${localPath}`);
 	}
 };
