@@ -1,12 +1,14 @@
-import { describe, expect } from 'manten';
+import {
+	describe, test, expect, onTestFail,
+} from 'manten';
 import { createFixture } from 'fs-fixture';
 import { isFsCaseSensitive } from 'is-fs-case-sensitive';
 import { createGit } from './utils/create-git.js';
 import { gitDetectCaseChange } from './utils/git-detect-case-change.js';
 import { chmod } from './utils/chmod.js';
 
-describe('git-detect-case-change', ({ test }) => {
-	test('detects basic case change', async ({ onTestFail }) => {
+describe('git-detect-case-change', () => {
+	test('detects basic case change', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -38,7 +40,7 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toMatch(/^R/); // Rename staged
 	});
 
-	test('dry run mode does not stage changes', async ({ onTestFail }) => {
+	test('dry run mode does not stage changes', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -70,7 +72,7 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toBe(''); // No changes staged
 	});
 
-	test('skips already-staged moves', async ({ onTestFail }) => {
+	test('skips already-staged moves', async () => {
 		await using fixture = await createFixture({
 			'src/helper.ts': 'export const helper = true;',
 		});
@@ -99,7 +101,7 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(status).toMatch('src/helper.ts -> src/HELPER.ts');
 	});
 
-	test('skips already-staged moves that were modified (RM status)', async ({ onTestFail }) => {
+	test('skips already-staged moves that were modified (RM status)', async () => {
 		await using fixture = await createFixture({
 			'src/utils.ts': 'export const utils = true;',
 		});
@@ -135,7 +137,7 @@ describe('git-detect-case-change', ({ test }) => {
 		expect(statusAfter).toMatch('src/utils.ts -> src/UTILS.ts');
 	});
 
-	test('handles multiple case changes', async ({ onTestFail }) => {
+	test('handles multiple case changes', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -178,8 +180,8 @@ describe('git-detect-case-change', ({ test }) => {
 	});
 });
 
-describe('--fix-local mode', ({ test }) => {
-	test('renames local files to match Git case', async ({ onTestFail }) => {
+describe('--fix-local mode', () => {
+	test('renames local files to match Git case', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -211,7 +213,7 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe('');
 	});
 
-	test('dry run does not rename files', async ({ onTestFail }) => {
+	test('dry run does not rename files', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -243,7 +245,7 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe(''); // Git can't see case-only differences on case-insensitive FS
 	});
 
-	test('handles multiple files', async ({ onTestFail }) => {
+	test('handles multiple files', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -284,7 +286,7 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe('');
 	});
 
-	test('handles folder case changes', async ({ onTestFail }) => {
+	test('handles folder case changes', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -326,7 +328,7 @@ describe('--fix-local mode', ({ test }) => {
 		expect(status).toBe('');
 	});
 
-	test('handles folder AND file case changes', async ({ onTestFail }) => {
+	test('handles folder AND file case changes', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -365,8 +367,8 @@ describe('--fix-local mode', ({ test }) => {
 	});
 });
 
-describe('Path complexity', ({ test }) => {
-	test('handles nested directories', async ({ onTestFail }) => {
+describe('Path complexity', () => {
+	test('handles nested directories', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -395,7 +397,7 @@ describe('Path complexity', ({ test }) => {
 		expect(status).toMatch(/^R/);
 	});
 
-	test('handles files with spaces', async ({ onTestFail }) => {
+	test('handles files with spaces', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -424,7 +426,7 @@ describe('Path complexity', ({ test }) => {
 		expect(status).toMatch(/^R/);
 	});
 
-	test('handles partial case changes', async ({ onTestFail }) => {
+	test('handles partial case changes', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -454,8 +456,8 @@ describe('Path complexity', ({ test }) => {
 	});
 });
 
-describe('Error handling', ({ test }) => {
-	test('fails when not in git repository', async ({ onTestFail }) => {
+describe('Error handling', () => {
+	test('fails when not in git repository', async () => {
 		await using fixture = await createFixture({
 			'file.ts': 'export const main = true;',
 		});
@@ -472,7 +474,7 @@ describe('Error handling', ({ test }) => {
 		}
 	});
 
-	test('handles empty git repository', async ({ onTestFail }) => {
+	test('handles empty git repository', async () => {
 		await using fixture = await createFixture({
 			'file.ts': 'export const main = true;',
 		});
@@ -492,7 +494,7 @@ describe('Error handling', ({ test }) => {
 		}
 	});
 
-	test('continues processing after fs.rename failure in fix-local mode', async ({ onTestFail }) => {
+	test('continues processing after fs.rename failure in fix-local mode', async () => {
 		if (process.platform === 'win32') {
 			console.log('Skipped: chmod does not work on Windows');
 			return;
@@ -546,7 +548,7 @@ describe('Error handling', ({ test }) => {
 		expect(result.stdout).toMatch('src/FILE2.ts -> src/file2.ts');
 	});
 
-	test('continues processing after git mv failure in default mode', async ({ onTestFail }) => {
+	test('continues processing after git mv failure in default mode', async () => {
 		if (process.platform === 'win32') {
 			console.log('Skipped: chmod does not work on Windows');
 			return;

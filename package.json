@@ -27,7 +27,8 @@
 		"lint": "lintroll",
 		"type-check": "tsc",
 		"test": "tsx tests",
-		"prepack": "pnpm build && clean-pkg-json"
+		"prepack": "pnpm build && clean-pkg-json",
+		"prepare": "skills-npm"
 	},
 	"engines": {
 		"node": ">=20.18.0"
@@ -40,9 +41,10 @@
 		"fs.promises.exists": "^1.1.4",
 		"is-fs-case-sensitive": "^2.0.0",
 		"lintroll": "^1.28.1",
-		"manten": "^1.9.0",
+		"manten": "^2.0.0",
 		"nano-spawn": "^2.0.0",
 		"pkgroll": "^2.21.1",
+		"skills-npm": "^1.0.0",
 		"tsx": "^4.20.6",
 		"typescript": "^5.9.3"
 	}
