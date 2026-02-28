@@ -43,7 +43,7 @@
 		"lintroll": "^1.28.1",
 		"manten": "^2.0.0",
 		"nano-spawn": "^2.0.0",
-		"pkgroll": "^2.21.1",
+		"pkgroll": "^2.27.0",
 		"skills-npm": "^1.0.0",
 		"tsx": "^4.20.6",
 		"typescript": "^5.9.3"
