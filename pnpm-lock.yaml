@@ -15,8 +15,8 @@ importers:
         specifier: ^1.3.0
         version: 1.3.0
       cleye:
-        specifier: ^2.0.0
-        version: 2.1.0
+        specifier: ^2.2.1
+        version: 2.2.1
       fs-fixture:
         specifier: ^2.11.0
         version: 2.11.0
@@ -1116,9 +1116,6 @@ packages:
   clean-regexp@1.0.0:
     resolution: {integrity: sha512-GfisEZEJvzKrmGWkvfhgzcz/BllN1USeqD2V6tg14OAOgaCD2Z/PUEuxnAZ/nPvmaHRG7a8y77p1T/IRQ4D1Hw==}
     engines: {node: '>=4'}
-
-  cleye@2.1.0:
-    resolution: {integrity: sha512-7vRhxrOSMTTuKEwD0R14DU81zPT4v0USNuv0S4NkghzEvZtcmpUZK4S+MgX+CLUsV2ke6d2X2k/10AnKVls/Iw==}
 
   cleye@2.2.1:
     resolution: {integrity: sha512-eZzJGlG3N6+IsKV+297HIRS2fyRsLMOrx62hGUmmcyOtP/I+L7JVeSKZH49WZUdVB8NoaZOUvq01363I/PHJiA==}
@@ -3668,11 +3665,6 @@ snapshots:
   clean-regexp@1.0.0:
     dependencies:
       escape-string-regexp: 1.0.5
-
-  cleye@2.1.0:
-    dependencies:
-      terminal-columns: 2.0.0
-      type-flag: 4.0.3
 
   cleye@2.2.1:
     dependencies:
