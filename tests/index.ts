@@ -600,3 +600,183 @@ describe('Error handling', () => {
 		expect(status).toMatch(/R.*file2\.ts.*FILE2\.ts/);
 	});
 });
+
+describe('--merge and --since modes', () => {
+	test('--merge detects case change after simulated merge', async () => {
+		if (isFsCaseSensitive()) {
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		await git('checkout', ['-b', 'feature']);
+
+		await git('mv', ['src/index.ts', 'src/index.ts.tmp']);
+		await git('mv', ['src/index.ts.tmp', 'src/INDEX.ts']);
+		await git('commit', ['-m', 'Rename to uppercase']);
+
+		await git('checkout', ['main']);
+		await git('merge', ['feature']);
+
+		// Simulate case-insensitive FS not updating: revert filesystem case
+		await fixture.mv('src/INDEX.ts', 'src/index.ts');
+
+		const result = await gitDetectCaseChange(fixture.path, ['--merge']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('src/INDEX.ts');
+	});
+
+	test('--merge exits cleanly without ORIG_HEAD', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		const result = await gitDetectCaseChange(fixture.path, ['--merge']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toBe('');
+		expect(result.stderr).toBe('');
+	});
+
+	test('--since scopes to changed files only', async () => {
+		if (isFsCaseSensitive()) {
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+			'lib/utils.ts': 'export const util = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['.']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		await git('checkout', ['-b', 'feature']);
+
+		await git('mv', ['src/index.ts', 'src/index.ts.tmp']);
+		await git('mv', ['src/index.ts.tmp', 'src/INDEX.ts']);
+		await git('commit', ['-m', 'Rename to uppercase']);
+
+		await git('checkout', ['main']);
+
+		const ref = await git('rev-parse', ['HEAD']);
+		await git('merge', ['feature']);
+
+		// Simulate case-insensitive FS: revert merge's rename on disk
+		await fixture.mv('src/INDEX.ts', 'src/index.ts');
+		// Separate case mismatch NOT in the diff range (should be ignored)
+		await fixture.mv('lib/utils.ts', 'lib/UTILS.ts');
+
+		const result = await gitDetectCaseChange(fixture.path, ['--since', ref]);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('src/INDEX.ts');
+		expect(result.stdout).not.toMatch('lib/utils.ts');
+		expect(result.stdout).not.toMatch('lib/UTILS.ts');
+	});
+
+	test('--merge with --fix-local fixes filesystem case', async () => {
+		if (isFsCaseSensitive()) {
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		await git('checkout', ['-b', 'feature']);
+
+		await git('mv', ['src/index.ts', 'src/index.ts.tmp']);
+		await git('mv', ['src/index.ts.tmp', 'src/INDEX.ts']);
+		await git('commit', ['-m', 'Rename to uppercase']);
+
+		await git('checkout', ['main']);
+		await git('merge', ['feature']);
+
+		// Simulate case-insensitive FS not updating: revert filesystem case
+		await fixture.mv('src/INDEX.ts', 'src/index.ts');
+
+		const result = await gitDetectCaseChange(fixture.path, ['--merge', '--fix-local']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('Fixed:');
+		expect(result.stdout).toMatch('src/INDEX.ts');
+
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe('');
+	});
+
+	test('--merge and --since are mutually exclusive', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		const result = await gitDetectCaseChange(fixture.path, ['--merge', '--since', 'HEAD~1']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect('exitCode' in result).toBe(true);
+		if ('exitCode' in result) {
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toMatch(/mutually exclusive/);
+		}
+	});
+
+	test('--since with invalid ref errors gracefully', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		const result = await gitDetectCaseChange(fixture.path, ['--since', 'nonexistent-ref']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect('exitCode' in result).toBe(true);
+		if ('exitCode' in result) {
+			expect(result.exitCode).not.toBe(0);
+		}
+	});
+});
