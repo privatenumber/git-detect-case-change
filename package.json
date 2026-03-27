@@ -40,7 +40,7 @@
 		"fs-fixture": "^2.11.0",
 		"fs.promises.exists": "^1.1.4",
 		"is-fs-case-sensitive": "^2.0.0",
-		"lintroll": "^1.28.1",
+		"lintroll": "^1.30.0",
 		"manten": "^2.0.0",
 		"nano-spawn": "^2.0.0",
 		"pkgroll": "^2.21.5",
