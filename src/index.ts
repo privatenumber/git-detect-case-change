@@ -32,34 +32,17 @@ cli({
 			type: String,
 			description: 'Only check files changed since this ref (e.g. ORIG_HEAD)',
 		},
-		merge: {
-			type: Boolean,
-			default: false,
-			description: 'Fix case mismatches from the last merge/rebase (implies --fix-local)',
-		},
 	},
 
 	help: {
 		description,
 	},
 }, async (argv) => {
-	const { dry, merge, since } = argv.flags;
-	const fixLocal = argv.flags.fixLocal || merge;
+	const { dry, fixLocal, since } = argv.flags;
 	const { paths } = argv._;
 
-	if (merge && since) {
-		console.error('Error: --merge and --since are mutually exclusive');
-		process.exit(1);
-	}
-
 	let sinceRef: string | null = null;
-	if (merge) {
-		sinceRef = await resolveRef('ORIG_HEAD');
-		if (!sinceRef) {
-			console.error('No ORIG_HEAD found (not after a merge/rebase)');
-			process.exit(0);
-		}
-	} else if (since) {
+	if (since) {
 		sinceRef = await resolveRef(since);
 		if (!sinceRef) {
 			console.error(`Error: '${since}' is not a valid ref`);
