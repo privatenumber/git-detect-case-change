@@ -85,10 +85,8 @@ set -e
 # .git/hooks/post-merge (or .husky/post-merge)
 
 # ORIG_HEAD points to where HEAD was before the merge.
-# Skip if it doesn't exist (e.g. fresh clone with no merges).
-if ! git rev-parse --verify ORIG_HEAD >/dev/null 2>&1; then
-  exit 0
-fi
+# Exit cleanly if it doesn't exist (e.g. fresh clone with no merges).
+git rev-parse --verify ORIG_HEAD >/dev/null 2>&1 || exit 0
 
 # Only check files that changed in the merge (fast even in large repos)
 ./node_modules/.bin/git-detect-case-change --fix-local --since ORIG_HEAD
