@@ -14,5 +14,6 @@ export const getDiffFiles = async (sinceRef: string, scopePath?: string[]) => {
 			...(scopePath ? ['--', ...scopePath] : []),
 		],
 	);
+	// -z uses NUL delimiters because filenames can contain newlines
 	return diffOutput.stdout.split('\0').filter(Boolean);
 };
