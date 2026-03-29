@@ -16,6 +16,8 @@ export const applyCaseChanges = async ({
 	dry,
 	fixLocal,
 }: ApplyOptions) => {
+	let changesFound = 0;
+
 	if (fixLocal) {
 		// In fix-local mode, rename directories first to avoid file-by-file issues
 		const directoryChanges = extractDirectoryChanges(caseDifferentFiles);
@@ -29,6 +31,7 @@ export const applyCaseChanges = async ({
 			}
 
 			console.log(`Fixed: ${localDirectory}/ -> ${gitDirectory}/`);
+			changesFound += 1;
 		}
 	}
 
@@ -77,5 +80,8 @@ export const applyCaseChanges = async ({
 		console.log(fixLocal
 			? `Fixed: ${actualLocalPath.split(path.sep).join('/')} -> ${gitPath}`
 			: `${gitPath} -> ${localPath}`);
+		changesFound += 1;
 	}
+
+	return changesFound;
 };

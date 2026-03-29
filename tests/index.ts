@@ -704,3 +704,57 @@ describe('--since mode', () => {
 		}
 	});
 });
+
+describe('--check mode', () => {
+	test('--check exits with code 1 when mismatches found', async () => {
+		if (isFsCaseSensitive()) {
+			console.log('Skipped: Test only runs on case-insensitive filesystems');
+			return;
+		}
+
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		await fixture.mv('src/index.ts', 'src/INDEX.ts');
+
+		const result = await gitDetectCaseChange(fixture.path, ['--check']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toMatch('src/index.ts -> src/INDEX.ts');
+		expect('exitCode' in result).toBe(true);
+		if ('exitCode' in result) {
+			expect(result.exitCode).toBe(1);
+		}
+
+		// Verify nothing was staged (implies --dry)
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe('');
+	});
+
+	test('--check exits with code 0 when no mismatches', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'export const main = true;',
+		});
+
+		const git = await createGit(fixture.path);
+
+		await git('add', ['src/index.ts']);
+		await git('commit', ['-m', 'Initial commit']);
+
+		const result = await gitDetectCaseChange(fixture.path, ['--check']);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.stdout).toBe('');
+		expect('exitCode' in result).toBe(false);
+	});
+});
