@@ -653,7 +653,7 @@ describe('--merge and --since modes', () => {
 		});
 
 		expect(result.stdout).toBe('');
-		expect(result.stderr).toBe('');
+		expect(result.stderr).toMatch('No ORIG_HEAD found');
 	});
 
 	test('--since scopes to changed files only', async () => {
@@ -777,6 +777,7 @@ describe('--merge and --since modes', () => {
 		expect('exitCode' in result).toBe(true);
 		if ('exitCode' in result) {
 			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toMatch('is not a valid ref');
 		}
 	});
 });

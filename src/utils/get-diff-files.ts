@@ -4,7 +4,8 @@ export const getDiffFiles = async (sinceRef: string, scopePath?: string[]) => {
 	const diffOutput = await spawn(
 		'git',
 		[
-			'diff',
+			'diff-tree',
+			'-r',
 			'--name-only',
 			'-z',
 			'--diff-filter=ACMR',

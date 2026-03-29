@@ -3,7 +3,7 @@ import packageJson from '../package.json' with { type: 'json' };
 import { getMovedFiles } from './utils/get-moved-files.js';
 import { getGitTreeFiles } from './utils/get-git-tree-files.js';
 import { getDiffFiles } from './utils/get-diff-files.js';
-import { resolveOrigHead } from './utils/resolve-orig-head.js';
+import { resolveRef } from './utils/resolve-orig-head.js';
 import { checkCaseDifferences } from './utils/check-case-differences.js';
 import { applyCaseChanges } from './utils/apply-case-changes.js';
 
@@ -43,7 +43,9 @@ cli({
 		description,
 	},
 }, async (argv) => {
-	const { dry, fixLocal, merge, since } = argv.flags;
+	const {
+		dry, fixLocal, merge, since,
+	} = argv.flags;
 	const { paths } = argv._;
 
 	if (merge && since) {
@@ -53,15 +55,20 @@ cli({
 
 	let sinceRef: string | null = null;
 	if (merge) {
-		sinceRef = await resolveOrigHead();
+		sinceRef = await resolveRef('ORIG_HEAD');
 		if (!sinceRef) {
+			console.error('No ORIG_HEAD found (not after a merge/rebase)');
 			process.exit(0);
 		}
 	} else if (since) {
-		sinceRef = since;
+		sinceRef = await resolveRef(since);
+		if (!sinceRef) {
+			console.error(`Error: '${since}' is not a valid ref`);
+			process.exit(1);
+		}
 	}
 
-	const movedFiles = await getMovedFiles(paths);
+	const movedFiles = fixLocal ? new Map<string, string>() : await getMovedFiles(paths);
 	const gitFiles = sinceRef
 		? await getDiffFiles(sinceRef, paths)
 		: await getGitTreeFiles(paths);
