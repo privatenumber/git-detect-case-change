@@ -68,6 +68,33 @@ Limit to specific paths:
 npx git-detect-case-change -- <dir-or-file>
 ```
 
+Only check files changed since a specific ref:
+
+```sh
+npx git-detect-case-change --since HEAD~3
+npx git-detect-case-change --fix-local --since ORIG_HEAD
+```
+
+### Post-merge hook
+
+Automatically fix case mismatches after every `git pull` or `git merge`:
+
+`.git/hooks/post-merge`:
+
+```sh
+#!/bin/sh
+# post-merge — fix case mismatches introduced by the merge
+set -e
+
+# ORIG_HEAD points to where HEAD was before the merge
+git rev-parse --verify ORIG_HEAD >/dev/null 2>&1 || exit 0
+
+# Only check files that changed in the merge (fast even in large repos)
+./node_modules/.bin/git-detect-case-change --fix-local --since ORIG_HEAD
+```
+
+Make the hook executable: `chmod +x .git/hooks/post-merge`
+
 <details>
 <summary>Why Git misses case-only renames</summary>
 
