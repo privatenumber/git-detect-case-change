@@ -81,6 +81,7 @@ Automatically fix case mismatches after every `git pull` or `git merge`:
 
 ```sh
 #!/bin/sh
+set -e
 # .git/hooks/post-merge (or .husky/post-merge)
 
 # ORIG_HEAD points to where HEAD was before the merge.
