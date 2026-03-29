@@ -3,9 +3,9 @@ import {
 } from 'manten';
 import { createFixture } from 'fs-fixture';
 import { isFsCaseSensitive } from 'is-fs-case-sensitive';
-import { createGit } from './utils/create-git.js';
-import { gitDetectCaseChange } from './utils/git-detect-case-change.js';
-import { chmod } from './utils/chmod.js';
+import { createGit } from './utils/create-git.ts';
+import { gitDetectCaseChange } from './utils/git-detect-case-change.ts';
+import { chmod } from './utils/chmod.ts';
 
 describe('git-detect-case-change', () => {
 	test('detects basic case change', async () => {

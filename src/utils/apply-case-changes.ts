@@ -1,7 +1,7 @@
 import path from 'node:path';
 import spawn from 'nano-spawn';
-import { extractDirectoryChanges } from './extract-directory-changes.js';
-import { safeCaseRename } from './safe-case-rename.js';
+import { extractDirectoryChanges } from './extract-directory-changes.ts';
+import { safeCaseRename } from './safe-case-rename.ts';
 
 type ApplyOptions = {
 	caseDifferentFiles: string[][];

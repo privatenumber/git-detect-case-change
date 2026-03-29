@@ -1,13 +1,14 @@
 {
 	"compilerOptions": {
-		"module": "preserve",
-		"resolveJsonModule": true,
+		"target": "esnext",
+		"module": "nodenext",
 		"types": [
 			"node",
 		],
+		"allowImportingTsExtensions": true,
 		"strict": true,
 		"noEmit": true,
-		"esModuleInterop": true,
-		"isolatedModules": true,
+		"erasableSyntaxOnly": true,
+		"verbatimModuleSyntax": true,
 	},
 }

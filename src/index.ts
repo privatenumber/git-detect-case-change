@@ -1,11 +1,11 @@
 import { cli } from 'cleye';
 import packageJson from '../package.json' with { type: 'json' };
-import { getMovedFiles } from './utils/get-moved-files.js';
-import { getGitTreeFiles } from './utils/get-git-tree-files.js';
-import { getDiffFiles } from './utils/get-diff-files.js';
-import { resolveRef } from './utils/resolve-ref.js';
-import { checkCaseDifferences } from './utils/check-case-differences.js';
-import { applyCaseChanges } from './utils/apply-case-changes.js';
+import { getMovedFiles } from './utils/get-moved-files.ts';
+import { getGitTreeFiles } from './utils/get-git-tree-files.ts';
+import { getDiffFiles } from './utils/get-diff-files.ts';
+import { resolveRef } from './utils/resolve-ref.ts';
+import { checkCaseDifferences } from './utils/check-case-differences.ts';
+import { applyCaseChanges } from './utils/apply-case-changes.ts';
 
 const { name, version, description } = packageJson;
 
