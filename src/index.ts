@@ -56,10 +56,14 @@ cli({
 		: await getGitTreeFiles(paths);
 	const caseDifferentFiles = await checkCaseDifferences(gitFiles);
 
-	await applyCaseChanges({
+	const changesFound = await applyCaseChanges({
 		caseDifferentFiles,
 		movedFiles,
 		dry,
 		fixLocal,
 	});
+
+	if (dry && changesFound > 0) {
+		process.exit(1);
+	}
 });
