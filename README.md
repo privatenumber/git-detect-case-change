@@ -79,18 +79,21 @@ npx git-detect-case-change --fix-local --since ORIG_HEAD
 
 Automatically fix case mismatches after every `git pull` or `git merge`:
 
+`.git/hooks/post-merge`:
+
 ```sh
 #!/bin/sh
+# post-merge — fix case mismatches introduced by the merge
 set -e
-# .git/hooks/post-merge (or .husky/post-merge)
 
-# ORIG_HEAD points to where HEAD was before the merge.
-# Exit cleanly if it doesn't exist (e.g. fresh clone with no merges).
+# ORIG_HEAD points to where HEAD was before the merge
 git rev-parse --verify ORIG_HEAD >/dev/null 2>&1 || exit 0
 
 # Only check files that changed in the merge (fast even in large repos)
 ./node_modules/.bin/git-detect-case-change --fix-local --since ORIG_HEAD
 ```
+
+Make the hook executable: `chmod +x .git/hooks/post-merge`
 
 <details>
 <summary>Why Git misses case-only renames</summary>
