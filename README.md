@@ -75,20 +75,20 @@ npx git-detect-case-change --since HEAD~3
 npx git-detect-case-change --fix-local --since ORIG_HEAD
 ```
 
-Only check files changed in the last merge/rebase (uses `ORIG_HEAD`):
+Fix case mismatches from the last merge/rebase (implies `--fix-local`, uses `ORIG_HEAD`):
 
 ```sh
 npx git-detect-case-change --merge
-npx git-detect-case-change --merge --fix-local
+npx git-detect-case-change --merge --dry  # Preview without fixing
 ```
 
 ### Post-merge hook
 
-Use `--merge --fix-local` to automatically fix case mismatches after every `git pull` or `git merge`:
+Use `--merge` to automatically fix case mismatches after every `git pull` or `git merge`:
 
 ```sh
 # .git/hooks/post-merge (or .husky/post-merge)
-npx git-detect-case-change --merge --fix-local
+npx git-detect-case-change --merge
 ```
 
 This only checks files that changed in the merge, so it stays fast even in large repos.

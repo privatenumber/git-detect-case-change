@@ -8,7 +8,7 @@ export const getDiffFiles = async (sinceRef: string, scopePath?: string[]) => {
 			'-r',
 			'--name-only',
 			'-z',
-			'--diff-filter=ACMR',
+			'--diff-filter=AM',
 			sinceRef,
 			'HEAD',
 			...(scopePath ? ['--', ...scopePath] : []),

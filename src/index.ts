@@ -3,7 +3,7 @@ import packageJson from '../package.json' with { type: 'json' };
 import { getMovedFiles } from './utils/get-moved-files.js';
 import { getGitTreeFiles } from './utils/get-git-tree-files.js';
 import { getDiffFiles } from './utils/get-diff-files.js';
-import { resolveRef } from './utils/resolve-orig-head.js';
+import { resolveRef } from './utils/resolve-ref.js';
 import { checkCaseDifferences } from './utils/check-case-differences.js';
 import { applyCaseChanges } from './utils/apply-case-changes.js';
 
@@ -35,7 +35,7 @@ cli({
 		merge: {
 			type: Boolean,
 			default: false,
-			description: 'Only check files changed in the last merge/rebase (uses ORIG_HEAD)',
+			description: 'Fix case mismatches from the last merge/rebase (implies --fix-local)',
 		},
 	},
 
@@ -43,9 +43,8 @@ cli({
 		description,
 	},
 }, async (argv) => {
-	const {
-		dry, fixLocal, merge, since,
-	} = argv.flags;
+	const { dry, merge, since } = argv.flags;
+	const fixLocal = argv.flags.fixLocal || merge;
 	const { paths } = argv._;
 
 	if (merge && since) {

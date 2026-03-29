@@ -602,7 +602,7 @@ describe('Error handling', () => {
 });
 
 describe('--merge and --since modes', () => {
-	test('--merge detects case change after simulated merge', async () => {
+	test('--merge fixes case change after merge', async () => {
 		if (isFsCaseSensitive()) {
 			console.log('Skipped: Test only runs on case-insensitive filesystems');
 			return;
@@ -626,15 +626,19 @@ describe('--merge and --since modes', () => {
 		await git('checkout', ['main']);
 		await git('merge', ['feature']);
 
-		// Simulate case-insensitive FS not updating: revert filesystem case
+		// Case-insensitive FS retains original case after merge
 		await fixture.mv('src/INDEX.ts', 'src/index.ts');
 
+		// --merge implies --fix-local
 		const result = await gitDetectCaseChange(fixture.path, ['--merge']);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
 
-		expect(result.stdout).toMatch('src/INDEX.ts');
+		expect(result.stdout).toMatch('Fixed: src/index.ts -> src/INDEX.ts');
+
+		const status = await git('status', ['--porcelain']);
+		expect(status).toBe('');
 	});
 
 	test('--merge exits cleanly without ORIG_HEAD', async () => {
@@ -683,7 +687,7 @@ describe('--merge and --since modes', () => {
 		const ref = await git('rev-parse', ['HEAD']);
 		await git('merge', ['feature']);
 
-		// Simulate case-insensitive FS: revert merge's rename on disk
+		// Case-insensitive FS retains original case after merge
 		await fixture.mv('src/INDEX.ts', 'src/index.ts');
 		// Separate case mismatch NOT in the diff range (should be ignored)
 		await fixture.mv('lib/utils.ts', 'lib/UTILS.ts');
@@ -693,7 +697,7 @@ describe('--merge and --since modes', () => {
 			console.log('Result:', result);
 		});
 
-		expect(result.stdout).toMatch('src/INDEX.ts');
+		expect(result.stdout).toMatch('src/INDEX.ts -> src/index.ts');
 		expect(result.stdout).not.toMatch('lib/utils.ts');
 		expect(result.stdout).not.toMatch('lib/UTILS.ts');
 	});
@@ -722,7 +726,7 @@ describe('--merge and --since modes', () => {
 		await git('checkout', ['main']);
 		await git('merge', ['feature']);
 
-		// Simulate case-insensitive FS not updating: revert filesystem case
+		// Case-insensitive FS retains original case after merge
 		await fixture.mv('src/INDEX.ts', 'src/index.ts');
 
 		const result = await gitDetectCaseChange(fixture.path, ['--merge', '--fix-local']);
@@ -730,8 +734,7 @@ describe('--merge and --since modes', () => {
 			console.log('Result:', result);
 		});
 
-		expect(result.stdout).toMatch('Fixed:');
-		expect(result.stdout).toMatch('src/INDEX.ts');
+		expect(result.stdout).toMatch('Fixed: src/index.ts -> src/INDEX.ts');
 
 		const status = await git('status', ['--porcelain']);
 		expect(status).toBe('');
