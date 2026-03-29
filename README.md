@@ -62,6 +62,12 @@ npx git-detect-case-change --dry
 npx git-detect-case-change --fix-local --dry
 ```
 
+Check mode (exits with code 1 if mismatches are found):
+
+```sh
+npx git-detect-case-change --check
+```
+
 Limit to specific paths:
 
 ```sh

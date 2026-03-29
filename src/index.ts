@@ -23,6 +23,11 @@ cli({
 			alias: 'd',
 			description: 'Dry run mode',
 		},
+		check: {
+			type: Boolean,
+			default: false,
+			description: 'Exit with code 1 if case mismatches are found (implies --dry)',
+		},
 		fixLocal: {
 			type: Boolean,
 			default: false,
@@ -38,7 +43,8 @@ cli({
 		description,
 	},
 }, async (argv) => {
-	const { dry, fixLocal, since } = argv.flags;
+	const { fixLocal, since, check } = argv.flags;
+	const dry = argv.flags.dry || check;
 	const { paths } = argv._;
 
 	let sinceRef: string | null = null;
@@ -63,7 +69,7 @@ cli({
 		fixLocal,
 	});
 
-	if (dry && changesFound > 0) {
+	if (check && changesFound > 0) {
 		process.exit(1);
 	}
 });
