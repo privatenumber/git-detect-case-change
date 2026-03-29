@@ -34,7 +34,7 @@
 		"node": ">=20.18.0"
 	},
 	"devDependencies": {
-		"@types/node": "^24.12.0",
+		"@types/node": "^25.5.0",
 		"clean-pkg-json": "^1.4.1",
 		"cleye": "^2.3.0",
 		"fs-fixture": "^2.13.0",
@@ -46,6 +46,6 @@
 		"pkgroll": "^2.27.0",
 		"skills-npm": "^1.1.1",
 		"tsx": "^4.21.0",
-		"typescript": "^5.9.3"
+		"typescript": "^6.0.2"
 	}
 }
