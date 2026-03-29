@@ -2,13 +2,11 @@
 
 Detect and fix case-only filename changes that Git can't see on macOS/Windows.
 
-On case-insensitive filesystems, renaming `utils.ts` → `Utils.ts` won't register in Git.
-
-This tool compares Git's tree with the filesystem and fixes mismatches in both directions.
+On case-insensitive filesystems, renaming `utils.ts` → `Utils.ts` won't register in Git. This tool detects those mismatches and fixes them.
 
 ```sh
 # Renamed foo.js → Foo.js but Git didn't notice?
-npx git-detect-case-change              # Stage the case change in Git
+npx git-detect-case-change              # Stage the case rename in Git
 npx git-detect-case-change --fix-local  # Rename local files to match Git
 ```
 
@@ -16,18 +14,15 @@ npx git-detect-case-change --fix-local  # Rename local files to match Git
 
 ## Usage
 
-The CLI supports two main modes:
+The tool works in two directions depending on which casing is correct:
 
-```sh
-# Stage local case changes to Git (most common)
-npx git-detect-case-change
+- **Local is the source of truth** — you renamed files locally and Git needs to know
+- **Git is the source of truth** — a teammate renamed files and your filesystem needs to catch up
 
-# Rename local files to match Git's case (after pulling teammate's changes)
-npx git-detect-case-change --fix-local
-
-# See what would change without modifying anything
-npx git-detect-case-change --dry
-```
+| Scenario                      | Command                                  | Effect                            |
+| ----------------------------- | ---------------------------------------- | --------------------------------- |
+| Local is the source of truth  | `npx git-detect-case-change`             | Stages the rename with `git mv`   |
+| Git is the source of truth    | `npx git-detect-case-change --fix-local` | Renames local files to Git's case |
 
 Example output:
 
@@ -44,37 +39,32 @@ lib/helper.js -> lib/Helper.js
 * Git doesn't show a rename even though you changed the file
 * Teammate pushed case-only changes and your local filesystem is out of sync
 
-## What it does
-
-This tool finds and fixes case mismatches between Git and the filesystem:
-
-| You want to…                                      | Command                                  | Effect                            |
-| ------------------------------------------------- | ---------------------------------------- | --------------------------------- |
-| Stage local case changes to Git                   | `npx git-detect-case-change`             | Stages the rename with `git mv`   |
-| Rename local files to match Git (e.g. after pull) | `npx git-detect-case-change --fix-local` | Renames local files to Git's case |
-
 ## Options
 
-Dry run:
+### Dry run
+
+Preview changes without modifying anything:
 
 ```sh
 npx git-detect-case-change --dry
 npx git-detect-case-change --fix-local --dry
 ```
 
-Check mode (exits with code 1 if mismatches are found, useful as a lint step or pre-commit hook):
+### Check mode
+
+Exits with code 1 if mismatches are found, useful as a lint step or pre-commit hook:
 
 ```sh
 npx git-detect-case-change --check
 ```
 
-Limit to specific paths:
+### Limit to specific paths
 
 ```sh
 npx git-detect-case-change -- <dir-or-file>
 ```
 
-Only check files changed since a specific ref:
+### Only check files changed since a ref
 
 ```sh
 npx git-detect-case-change --since HEAD~3
