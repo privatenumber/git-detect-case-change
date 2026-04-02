@@ -43,7 +43,7 @@
 		"is-fs-case-sensitive": "^2.0.0",
 		"lintroll": "^1.30.0",
 		"manten": "^2.0.0",
-		"nano-spawn": "^2.0.0",
+		"nano-spawn": "^2.1.0",
 		"pkgroll": "^2.27.0",
 		"skills-npm": "^1.1.1",
 		"typescript": "^6.0.2"

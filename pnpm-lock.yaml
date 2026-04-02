@@ -33,8 +33,8 @@ importers:
         specifier: ^2.0.0
         version: 2.0.0
       nano-spawn:
-        specifier: ^2.0.0
-        version: 2.0.0
+        specifier: ^2.1.0
+        version: 2.1.0
       pkgroll:
         specifier: ^2.27.0
         version: 2.27.0(typescript@6.0.2)
@@ -2223,8 +2223,8 @@ packages:
   ms@2.1.3:
     resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
 
-  nano-spawn@2.0.0:
-    resolution: {integrity: sha512-tacvGzUY5o2D8CBh2rrwxyNojUsZNU2zjNTzKQrkgGJQTbGAfArVWXSKMBokBeeg6C7OLRGUEyoFlYbfeWQIqw==}
+  nano-spawn@2.1.0:
+    resolution: {integrity: sha512-yTW+2okrElHiH4fsiz/+/zc0EDo9BDDoC3iKk8dpv1GeRc9nUWzUZHx6TofMWErchhUQR8hY9/Eu1Uja9x1nqA==}
     engines: {node: '>=20.17'}
 
   napi-postinstall@0.3.4:
@@ -4866,7 +4866,7 @@ snapshots:
       get-conditions: 1.0.1
       get-tsconfig: 4.13.7
       globals: 17.4.0
-      nano-spawn: 2.0.0
+      nano-spawn: 2.1.0
       resolve-pkg-maps: 1.0.0
       tsx: 4.21.0
       vue-eslint-parser: 10.4.0(eslint@9.39.4(jiti@2.6.1))
@@ -5240,7 +5240,7 @@ snapshots:
 
   ms@2.1.3: {}
 
-  nano-spawn@2.0.0: {}
+  nano-spawn@2.1.0: {}
 
   napi-postinstall@0.3.4: {}
 
