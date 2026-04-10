@@ -3,9 +3,120 @@ import {
 } from 'manten';
 import { createFixture } from 'fs-fixture';
 import { isFsCaseSensitive } from 'is-fs-case-sensitive';
+import { checkCaseDifferences } from '../src/utils/check-case-differences.ts';
 import { createGit } from './utils/create-git.ts';
 import { gitDetectCaseChange } from './utils/git-detect-case-change.ts';
 import { chmod } from './utils/chmod.ts';
+
+describe('checkCaseDifferences (unit)', () => {
+	test('detects file name case difference', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'content',
+		});
+
+		// Git thinks the file is INDEX.ts, but filesystem has index.ts
+		const result = await checkCaseDifferences(['src/INDEX.ts'], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.length).toBe(1);
+		expect(result[0]![0]).toBe('src/INDEX.ts');
+		expect(result[0]![1]).toBe('src/index.ts');
+	});
+
+	test('detects directory case difference', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'content',
+		});
+
+		// Git thinks the directory is SRC, but filesystem has src
+		const result = await checkCaseDifferences(['SRC/index.ts'], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.length).toBe(1);
+		expect(result[0]![0]).toBe('SRC/index.ts');
+		expect(result[0]![1]).toBe('src/index.ts');
+	});
+
+	test('detects nested directory case difference', async () => {
+		await using fixture = await createFixture({
+			'src/components/ui/Button.tsx': 'content',
+		});
+
+		const result = await checkCaseDifferences(['src/COMPONENTS/ui/Button.tsx'], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.length).toBe(1);
+		expect(result[0]![0]).toBe('src/COMPONENTS/ui/Button.tsx');
+		expect(result[0]![1]).toBe('src/components/ui/Button.tsx');
+	});
+
+	test('returns empty when casing matches', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'content',
+		});
+
+		const result = await checkCaseDifferences(['src/index.ts'], fixture.path);
+		expect(result.length).toBe(0);
+	});
+
+	test('handles multiple files with mixed differences', async () => {
+		await using fixture = await createFixture({
+			'src/file1.ts': 'content1',
+			'src/file2.ts': 'content2',
+			'lib/utils.ts': 'content3',
+		});
+
+		const result = await checkCaseDifferences([
+			'src/FILE1.ts', // case differs
+			'src/file2.ts', // matches
+			'LIB/utils.ts', // directory case differs
+		], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.length).toBe(2);
+
+		const file1Change = result.find(r => r[0] === 'src/FILE1.ts');
+		expect(file1Change).toBeDefined();
+		expect(file1Change![1]).toBe('src/file1.ts');
+
+		const libChange = result.find(r => r[0] === 'LIB/utils.ts');
+		expect(libChange).toBeDefined();
+		expect(libChange![1]).toBe('lib/utils.ts');
+	});
+
+	test('handles file that does not exist on filesystem', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'content',
+		});
+
+		// Nonexistent file should be silently skipped
+		const result = await checkCaseDifferences(['src/nonexistent.ts'], fixture.path);
+		expect(result.length).toBe(0);
+	});
+
+	test('handles root-level file case difference', async () => {
+		await using fixture = await createFixture({
+			'readme.md': 'content',
+		});
+
+		const result = await checkCaseDifferences(['README.md'], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result.length).toBe(1);
+		expect(result[0]![0]).toBe('README.md');
+		expect(result[0]![1]).toBe('readme.md');
+	});
+});
 
 describe('git-detect-case-change', () => {
 	test('detects basic case change', async () => {
