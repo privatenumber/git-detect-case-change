@@ -55,10 +55,16 @@ const resolveDirectoryPaths = async (gitFiles: string[], cwd: string) => {
 			const batch = dirs.slice(i, i + BATCH_SIZE);
 			await Promise.all(
 				batch.map(async (lowerKey) => {
-					const gitDir = uniqueDirs.get(lowerKey)!;
-					const parts = gitDir.split('/');
-					const segmentName = parts[parts.length - 1]!;
-					const parentKey = parts.slice(0, -1).join('/').toLowerCase() || '.';
+					const gitDir = uniqueDirs.get(lowerKey);
+					if (!gitDir) {
+						return;
+					}
+					const parts = gitDir.split("/");
+					const segmentName = parts.at(-1);
+					if (!segmentName) {
+						return;
+					}
+					const parentKey = parts.slice(0, -1).join("/").toLowerCase() || ".";
 					const parentPath = resolvedDirs.get(parentKey);
 
 					if (!parentPath) {
@@ -67,7 +73,11 @@ const resolveDirectoryPaths = async (gitFiles: string[], cwd: string) => {
 					}
 
 					// Resolve this segment by reading the parent directory
-					const resolvedPath = await resolveSegment(cwd, parentPath, segmentName);
+					const resolvedPath = await resolveSegment(
+						cwd,
+						parentPath,
+						segmentName,
+					);
 					if (resolvedPath) {
 						resolvedDirs.set(lowerKey, resolvedPath);
 					}
