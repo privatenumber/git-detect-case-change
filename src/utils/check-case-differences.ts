@@ -47,7 +47,7 @@ const resolveDirectoryPaths = async (gitFiles: string[], cwd: string) => {
 	const resolvedDirs = new Map<string, string>();
 	resolvedDirs.set('.', '.');
 
-	const depths = [...byDepth.keys()].sort((a, b) => a - b);
+	const depths = Array.from(byDepth.keys()).sort((a, b) => a - b);
 
 	for (const depth of depths) {
 		const dirs = byDepth.get(depth)!;
