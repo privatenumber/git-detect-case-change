@@ -20,9 +20,6 @@ importers:
       fs-fixture:
         specifier: ^2.13.0
         version: 2.13.0
-      fs.promises.exists:
-        specifier: ^1.1.4
-        version: 1.1.4
       is-fs-case-sensitive:
         specifier: ^2.0.0
         version: 2.0.0
@@ -1640,9 +1637,6 @@ packages:
   fs-fixture@2.13.0:
     resolution: {integrity: sha512-bqL4EVFNgoA38OnztLfeHn4NZJ32zWnSNA3ALtessYO0WjpL//QuYl1YkYd7j+TY0cLO6cqgoHxPJpfSwKQAPA==}
     engines: {node: '>=18.0.0'}
-
-  fs.promises.exists@1.1.4:
-    resolution: {integrity: sha512-lJzUGWbZn8vhGWBedA+RYjB/BeJ+3458ljUfmplqhIeb6ewzTFWNPCR1HCiYCkXV9zxcHz9zXkJzMsEgDLzh3Q==}
 
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
@@ -4434,8 +4428,6 @@ snapshots:
   format@0.2.2: {}
 
   fs-fixture@2.13.0: {}
-
-  fs.promises.exists@1.1.4: {}
 
   fsevents@2.3.3:
     optional: true
