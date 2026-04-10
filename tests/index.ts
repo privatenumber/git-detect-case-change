@@ -8,7 +8,7 @@ import { createGit } from './utils/create-git.ts';
 import { gitDetectCaseChange } from './utils/git-detect-case-change.ts';
 import { chmod } from './utils/chmod.ts';
 
-describe('checkCaseDifferences (unit)', () => {
+describe('checkCaseDifferences', () => {
 	test('detects file name case difference', async () => {
 		await using fixture = await createFixture({
 			'src/index.ts': 'content',
