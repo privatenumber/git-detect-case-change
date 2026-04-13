@@ -14,23 +14,22 @@ const BATCH_SIZE = 100;
 const resolveDirectoryPaths = async (gitFiles: string[], cwd: string) => {
 	// Collect unique directory segments needed at each depth
 	// Key: lowercased dir path, Value: git-cased dir path
-	const uniqueDirs = new Map<string, string>();
-	uniqueDirs.set('.', '.');
+	const uniqueDirectories = new Map<string, string>([['.', '.']]);
 
 	for (const filePath of gitFiles) {
 		const parts = filePath.split('/');
 		for (let i = 1; i < parts.length; i += 1) {
 			const dir = parts.slice(0, i).join('/');
 			const key = dir.toLowerCase();
-			if (!uniqueDirs.has(key)) {
-				uniqueDirs.set(key, dir);
+			if (!uniqueDirectories.has(key)) {
+				uniqueDirectories.set(key, dir);
 			}
 		}
 	}
 
 	// Group directories by depth so we can resolve parents before children
 	const byDepth = new Map<number, string[]>();
-	for (const [key, gitDir] of uniqueDirs) {
+	for (const [key, gitDir] of uniqueDirectories) {
 		if (key === '.') {
 			continue;
 		}
@@ -44,28 +43,26 @@ const resolveDirectoryPaths = async (gitFiles: string[], cwd: string) => {
 	}
 
 	// Map: lowercased dir path -> filesystem-accurate path
-	const resolvedDirs = new Map<string, string>();
-	resolvedDirs.set('.', '.');
+	const resolvedDirectories = new Map<string, string>([['.', '.']]);
 
 	const depthEntries = Array.from(byDepth.entries()).sort(([a], [b]) => a - b);
 
-	for (const [, dirs] of depthEntries) {
-
-		for (let i = 0; i < dirs.length; i += BATCH_SIZE) {
-			const batch = dirs.slice(i, i + BATCH_SIZE);
+	for (const [, directories] of depthEntries) {
+		for (let i = 0; i < directories.length; i += BATCH_SIZE) {
+			const batch = directories.slice(i, i + BATCH_SIZE);
 			await Promise.all(
 				batch.map(async (lowerKey) => {
-					const gitDir = uniqueDirs.get(lowerKey);
+					const gitDir = uniqueDirectories.get(lowerKey);
 					if (!gitDir) {
 						return;
 					}
-					const parts = gitDir.split("/");
+					const parts = gitDir.split('/');
 					const segmentName = parts.at(-1);
 					if (!segmentName) {
 						return;
 					}
-					const parentKey = parts.slice(0, -1).join("/").toLowerCase() || ".";
-					const parentPath = resolvedDirs.get(parentKey);
+					const parentKey = parts.slice(0, -1).join('/').toLowerCase() || '.';
+					const parentPath = resolvedDirectories.get(parentKey);
 
 					if (!parentPath) {
 						// Parent couldn't be resolved, skip
@@ -79,14 +76,14 @@ const resolveDirectoryPaths = async (gitFiles: string[], cwd: string) => {
 						segmentName,
 					);
 					if (resolvedPath) {
-						resolvedDirs.set(lowerKey, resolvedPath);
+						resolvedDirectories.set(lowerKey, resolvedPath);
 					}
 				}),
 			);
 		}
 	}
 
-	return resolvedDirs;
+	return resolvedDirectories;
 };
 
 /**
@@ -102,7 +99,7 @@ const resolveSegment = async (
 	try {
 		const entries = await fs.readdir(absParent);
 		const lowerSegment = segmentName.toLowerCase();
-		const actual = entries.find(e => e.toLowerCase() === lowerSegment);
+		const actual = entries.find(entry => entry.toLowerCase() === lowerSegment);
 		if (actual) {
 			return parentPath === '.' ? actual : `${parentPath}/${actual}`;
 		}
@@ -114,12 +111,12 @@ const resolveSegment = async (
 
 export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 	// Build a cache of directory entries keyed by resolved filesystem paths
-	const resolvedDirs = await resolveDirectoryPaths(gitFiles, cwd);
+	const resolvedDirectories = await resolveDirectoryPaths(gitFiles, cwd);
 
 	// Read all resolved directories in batches to build a case-insensitive entry cache
 	// Key: lowercased dir path -> Map<lowercased entry name, actual entry name>
 	const dirCache = new Map<string, Map<string, string>>();
-	const dirEntries = [...resolvedDirs.entries()];
+	const dirEntries = [...resolvedDirectories.entries()];
 
 	for (let i = 0; i < dirEntries.length; i += BATCH_SIZE) {
 		const batch = dirEntries.slice(i, i + BATCH_SIZE);

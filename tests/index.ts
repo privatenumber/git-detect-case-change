@@ -87,9 +87,9 @@ describe('checkCaseDifferences', () => {
 		expect(file1Change).toBeDefined();
 		expect(file1Change![1]).toBe('src/file1.ts');
 
-		const libChange = result.find(r => r[0] === 'LIB/utils.ts');
-		expect(libChange).toBeDefined();
-		expect(libChange![1]).toBe('lib/utils.ts');
+		const libraryChange = result.find(r => r[0] === 'LIB/utils.ts');
+		expect(libraryChange).toBeDefined();
+		expect(libraryChange![1]).toBe('lib/utils.ts');
 	});
 
 	test('handles file that does not exist on filesystem', async () => {
