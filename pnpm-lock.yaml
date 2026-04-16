@@ -20,9 +20,6 @@ importers:
       fs-fixture:
         specifier: ^2.13.0
         version: 2.13.0
-      fs.promises.exists:
-        specifier: ^1.1.4
-        version: 1.1.4
       is-fs-case-sensitive:
         specifier: ^2.0.0
         version: 2.0.0
@@ -41,6 +38,9 @@ importers:
       skills-npm:
         specifier: ^1.1.1
         version: 1.1.1
+      tinyspy:
+        specifier: ^4.0.4
+        version: 4.0.4
       typescript:
         specifier: ^6.0.2
         version: 6.0.2
@@ -1641,9 +1641,6 @@ packages:
     resolution: {integrity: sha512-bqL4EVFNgoA38OnztLfeHn4NZJ32zWnSNA3ALtessYO0WjpL//QuYl1YkYd7j+TY0cLO6cqgoHxPJpfSwKQAPA==}
     engines: {node: '>=18.0.0'}
 
-  fs.promises.exists@1.1.4:
-    resolution: {integrity: sha512-lJzUGWbZn8vhGWBedA+RYjB/BeJ+3458ljUfmplqhIeb6ewzTFWNPCR1HCiYCkXV9zxcHz9zXkJzMsEgDLzh3Q==}
-
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -2621,6 +2618,10 @@ packages:
   tinyglobby@0.2.15:
     resolution: {integrity: sha512-j2Zq4NyQYG5XMST4cbs02Ak8iJUdxRM0XI5QyxXuZOzKOINmWurp3smXu3y5wDcJrptwpSjgXHzIQxR0omXljQ==}
     engines: {node: '>=12.0.0'}
+
+  tinyspy@4.0.4:
+    resolution: {integrity: sha512-azl+t0z7pw/z958Gy9svOTuzqIk6xq+NSheJzn5MMWtWTFywIacg2wUlzKFGtt3cthx0r2SxMK0yzJOR0IES7Q==}
+    engines: {node: '>=14.0.0'}
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -4435,8 +4436,6 @@ snapshots:
 
   fs-fixture@2.13.0: {}
 
-  fs.promises.exists@1.1.4: {}
-
   fsevents@2.3.3:
     optional: true
 
@@ -5720,6 +5719,8 @@ snapshots:
     dependencies:
       fdir: 6.5.0(picomatch@4.0.4)
       picomatch: 4.0.4
+
+  tinyspy@4.0.4: {}
 
   to-regex-range@5.0.1:
     dependencies:

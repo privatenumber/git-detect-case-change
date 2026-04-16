@@ -39,13 +39,13 @@
 		"clean-pkg-json": "^1.4.1",
 		"cleye": "^2.3.0",
 		"fs-fixture": "^2.13.0",
-		"fs.promises.exists": "^1.1.4",
 		"is-fs-case-sensitive": "^2.0.0",
 		"lintroll": "^1.30.0",
 		"manten": "^2.0.0",
 		"nano-spawn": "^2.0.0",
 		"pkgroll": "^2.27.0",
 		"skills-npm": "^1.1.1",
+		"tinyspy": "^4.0.4",
 		"typescript": "^6.0.2"
 	}
 }

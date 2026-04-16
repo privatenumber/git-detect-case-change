@@ -126,8 +126,9 @@ See [this StackOverflow discussion](https://stackoverflow.com/questions/17683458
 
 2. **Detects case mismatches:**
 
-   For each Git path, uses [`fs.promises.exists`](https://github.com/privatenumber/fs.promises.exists) to look up the actual filesystem path in a case-insensitive way.
-   Files are processed in batches of 100 to avoid file descriptor limits on large repos.
+   Walks each Git path segment-by-segment, looking up directory entries with `fs.readdir`.
+   Reads are memoized by resolved path so each unique parent directory is read at most once, regardless of how many files it contains.
+   Lookups are case-insensitive and Unicode-normalized (NFC) to correctly match files stored in NFD form on macOS/Windows filesystems.
 
 3. **Applies fixes based on mode:**
 
