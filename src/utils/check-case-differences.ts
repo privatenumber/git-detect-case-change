@@ -1,14 +1,19 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-// NFC-normalized lowercase. Normalization matters on macOS/Windows where a file
-// can be stored NFD on disk while git returns NFC from ls-tree — byte comparison
-// would miss the match and silently skip the file.
-const canonicalize = (name: string) => name.normalize('NFC').toLowerCase();
+// Normalization matters on macOS/Windows where a file can be stored NFD on disk
+// while git returns NFC from ls-tree — byte comparison would miss the match.
+const normalize = (name: string) => name.normalize('NFC');
+const canonicalize = (name: string) => normalize(name).toLowerCase();
 
+// Three-tier lookup index per directory. Higher tiers take precedence so that
+// when a directory contains multiple case- or normalization-equivalent siblings,
+// the most-specific match wins instead of whichever entry the lower-tier map
+// happened to hold last.
 type DirectoryIndex = {
-	exact: Set<string>;
-	canonical: Map<string, string>;
+	exact: Set<string>; // bytewise identical
+	normalized: Map<string, string>; // NFC-equal, case preserved
+	canonical: Map<string, string>; // NFC + case-folded
 };
 
 export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
@@ -20,12 +25,15 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 			cached = fs.readdir(path.join(cwd, directoryPath)).then(
 				(entries): DirectoryIndex => {
 					const exact = new Set(entries);
+					const normalized = new Map<string, string>();
 					const canonical = new Map<string, string>();
 					for (const entry of entries) {
+						normalized.set(normalize(entry), entry);
 						canonical.set(canonicalize(entry), entry);
 					}
 					return {
 						exact,
+						normalized,
 						canonical,
 					};
 				},
@@ -33,6 +41,7 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 					console.error(`Warning: Could not read directory ${directoryPath}: ${error.message}`);
 					return {
 						exact: new Set(),
+						normalized: new Map(),
 						canonical: new Map(),
 					};
 				},
@@ -45,12 +54,11 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 	const resolveActualPath = async (gitPath: string) => {
 		let actualPath = '.';
 		for (const segment of gitPath.split('/')) {
-			const { exact, canonical } = await readDirectory(actualPath);
-			// Exact match wins over canonical lookup. On case-sensitive filesystems
-			// a directory may contain both 'index.ts' and 'INDEX.ts' as distinct
-			// files; if git asks for one of them, return that exact entry rather
-			// than whichever case-collision sibling the canonical map happens to hold.
-			const actualSegment = exact.has(segment) ? segment : canonical.get(canonicalize(segment));
+			const { exact, normalized, canonical } = await readDirectory(actualPath);
+			const actualSegment = exact.has(segment)
+				? segment
+				: normalized.get(normalize(segment))
+				?? canonical.get(canonicalize(segment));
 			if (!actualSegment) {
 				return undefined;
 			}
@@ -67,7 +75,7 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 	for (const [gitPath, actualPath] of resolved) {
 		// Case-preserving normalization compare: a pure NFC/NFD difference isn't
 		// a case change and shouldn't be reported.
-		if (actualPath && actualPath.normalize('NFC') !== gitPath.normalize('NFC')) {
+		if (actualPath && normalize(actualPath) !== normalize(gitPath)) {
 			result.push([gitPath, actualPath]);
 		}
 	}
