@@ -6,23 +6,35 @@ import path from 'node:path';
 // would miss the match and silently skip the file.
 const canonicalize = (name: string) => name.normalize('NFC').toLowerCase();
 
+type DirectoryIndex = {
+	exact: Set<string>;
+	canonical: Map<string, string>;
+};
+
 export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
-	const directoryCache = new Map<string, Promise<Map<string, string>>>();
+	const directoryCache = new Map<string, Promise<DirectoryIndex>>();
 
 	const readDirectory = (directoryPath: string) => {
 		let cached = directoryCache.get(directoryPath);
 		if (!cached) {
 			cached = fs.readdir(path.join(cwd, directoryPath)).then(
-				(entries) => {
-					const entryMap = new Map<string, string>();
+				(entries): DirectoryIndex => {
+					const exact = new Set(entries);
+					const canonical = new Map<string, string>();
 					for (const entry of entries) {
-						entryMap.set(canonicalize(entry), entry);
+						canonical.set(canonicalize(entry), entry);
 					}
-					return entryMap;
+					return {
+						exact,
+						canonical,
+					};
 				},
-				(error: Error) => {
+				(error: Error): DirectoryIndex => {
 					console.error(`Warning: Could not read directory ${directoryPath}: ${error.message}`);
-					return new Map<string, string>();
+					return {
+						exact: new Set(),
+						canonical: new Map(),
+					};
 				},
 			);
 			directoryCache.set(directoryPath, cached);
@@ -33,8 +45,12 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 	const resolveActualPath = async (gitPath: string) => {
 		let actualPath = '.';
 		for (const segment of gitPath.split('/')) {
-			const entries = await readDirectory(actualPath);
-			const actualSegment = entries.get(canonicalize(segment));
+			const { exact, canonical } = await readDirectory(actualPath);
+			// Exact match wins over canonical lookup. On case-sensitive filesystems
+			// a directory may contain both 'index.ts' and 'INDEX.ts' as distinct
+			// files; if git asks for one of them, return that exact entry rather
+			// than whichever case-collision sibling the canonical map happens to hold.
+			const actualSegment = exact.has(segment) ? segment : canonical.get(canonicalize(segment));
 			if (!actualSegment) {
 				return undefined;
 			}

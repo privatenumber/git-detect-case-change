@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import {
 	describe, test, expect, onTestFail,
 } from 'manten';
@@ -174,6 +175,38 @@ describe('checkCaseDifferences', () => {
 		});
 
 		expect(result).toStrictEqual([]);
+	});
+
+	// On case-sensitive filesystems a directory can contain two distinct files that
+	// differ only by case (e.g. 'index.ts' AND 'INDEX.ts'). When git tracks one of
+	// them by its exact name, the resolver must return that exact entry — not the
+	// other case variant that happens to canonicalize to the same key.
+	test('prefers exact segment match over canonical-collision sibling', async () => {
+		await using fixture = await createFixture({
+			'src/index.ts': 'content',
+		});
+		const targetDirectory = path.join(fixture.path, 'src');
+
+		const originalReaddir = fs.readdir;
+		const spy = (async (...args: Parameters<typeof fs.readdir>) => {
+			if (String(args[0]) === targetDirectory) {
+				// Pretend the directory has both case variants.
+				return ['index.ts', 'INDEX.ts'] as never;
+			}
+			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+		}) as typeof fs.readdir;
+		fs.readdir = spy;
+
+		try {
+			const result = await checkCaseDifferences(['src/index.ts'], fixture.path);
+			onTestFail(() => {
+				console.log('Result:', result);
+			});
+			// 'src/index.ts' is an exact entry — should not be reported as a difference.
+			expect(result).toStrictEqual([]);
+		} finally {
+			fs.readdir = originalReaddir;
+		}
 	});
 
 	// Normalization handling must not hide genuine case differences that happen to
