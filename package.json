@@ -35,12 +35,12 @@
 		"node": ">=20.18.0"
 	},
 	"devDependencies": {
-		"@types/node": "^25.5.0",
+		"@types/node": "^25.5.2",
 		"clean-pkg-json": "^1.4.1",
 		"cleye": "^2.3.0",
 		"fs-fixture": "^2.13.0",
 		"is-fs-case-sensitive": "^2.0.0",
-		"lintroll": "^1.30.0",
+		"lintroll": "^1.30.1",
 		"manten": "^2.0.0",
 		"nano-spawn": "^2.0.0",
 		"pkgroll": "^2.27.0",
