@@ -1,10 +1,11 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import {
-	describe, test, expect, onTestFail,
+	describe, test, expect, onTestFail, onTestFinish,
 } from 'manten';
 import { createFixture } from 'fs-fixture';
 import { isFsCaseSensitive } from 'is-fs-case-sensitive';
+import { spyOn } from 'tinyspy';
 import { checkCaseDifferences } from '../src/utils/check-case-differences.ts';
 import { createGit } from './utils/create-git.ts';
 import { gitDetectCaseChange } from './utils/git-detect-case-change.ts';
@@ -141,23 +142,10 @@ describe('checkCaseDifferences', () => {
 	});
 });
 
-// These tests monkey-patch the global fs.readdir. Manten runs tests within a
-// describe in parallel by default, which would let two spies' install/restore
-// races interleave and corrupt each other. Run them sequentially instead.
+// These tests spy on the global fs.readdir. Manten runs tests within a describe
+// in parallel by default, which would let two spies' install/restore races
+// interleave and corrupt each other. Run them sequentially instead.
 describe('checkCaseDifferences (with fs.readdir spy)', () => {
-	const withReaddirStub = async <T>(
-		stub: typeof fs.readdir,
-		run: () => Promise<T>,
-	): Promise<T> => {
-		const original = fs.readdir;
-		fs.readdir = stub;
-		try {
-			return await run();
-		} finally {
-			fs.readdir = original;
-		}
-	};
-
 	test('reads each directory at most once (perf invariant)', async () => {
 		await using fixture = await createFixture({
 			'src/a/one.ts': '',
@@ -183,30 +171,25 @@ describe('checkCaseDifferences (with fs.readdir spy)', () => {
 			'readme.md',
 		];
 
-		const readdirCalls: string[] = [];
-		const originalReaddir = fs.readdir;
-		await withReaddirStub(
-			(async (...args: Parameters<typeof fs.readdir>) => {
-				const callPath = String(args[0]);
-				// Filter to calls targeting our fixture; other tests may also be
-				// hitting fs.readdir during this window.
-				if (callPath.startsWith(fixture.path)) {
-					readdirCalls.push(callPath);
-				}
-				return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
-			}) as typeof fs.readdir,
-			() => checkCaseDifferences(gitFiles, fixture.path),
-		);
+		const spy = spyOn(fs, 'readdir', fs.readdir);
+		onTestFinish(() => spy.restore());
+
+		await checkCaseDifferences(gitFiles, fixture.path);
+
+		// Other tests may also be hitting fs.readdir during this window — filter
+		// to calls targeting our fixture before counting.
+		const fixtureCalls = spy.calls
+			.map(args => String(args[0]))
+			.filter(callPath => callPath.startsWith(fixture.path));
 
 		onTestFail(() => {
-			console.log('readdir calls:', readdirCalls);
+			console.log('fixture readdir calls:', fixtureCalls);
 		});
 
-		// Unique directories touched: fixture root, src, src/a, src/b, lib, lib/x, lib/x/y, lib/x/z = 8
-		const uniqueDirectoryCount = new Set(readdirCalls).size;
-		expect(uniqueDirectoryCount).toBe(8);
-		// Each unique directory should be read exactly once - the whole point of this module.
-		expect(readdirCalls.length).toBe(uniqueDirectoryCount);
+		// Unique directories: fixture root, src, src/a, src/b, lib, lib/x, lib/x/y, lib/x/z = 8.
+		// Each must be read exactly once - the whole point of this module.
+		expect(new Set(fixtureCalls).size).toBe(8);
+		expect(fixtureCalls.length).toBe(8);
 	});
 
 	// On case-sensitive filesystems a directory can contain two distinct files that
@@ -220,17 +203,16 @@ describe('checkCaseDifferences (with fs.readdir spy)', () => {
 		const targetDirectory = path.join(fixture.path, 'src');
 		const originalReaddir = fs.readdir;
 
-		const result = await withReaddirStub(
-			(async (...args: Parameters<typeof fs.readdir>) => {
-				if (String(args[0]) === targetDirectory) {
-					// Pretend the directory has both case variants.
-					return ['index.ts', 'INDEX.ts'] as never;
-				}
-				return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
-			}) as typeof fs.readdir,
-			() => checkCaseDifferences(['src/index.ts'], fixture.path),
-		);
+		const spy = spyOn(fs, 'readdir', (async (...args: Parameters<typeof fs.readdir>) => {
+			if (String(args[0]) === targetDirectory) {
+				// Pretend the directory has both case variants.
+				return ['index.ts', 'INDEX.ts'] as never;
+			}
+			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+		}) as typeof fs.readdir);
+		onTestFinish(() => spy.restore());
 
+		const result = await checkCaseDifferences(['src/index.ts'], fixture.path);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
@@ -253,16 +235,15 @@ describe('checkCaseDifferences (with fs.readdir spy)', () => {
 		const targetDirectory = path.join(fixture.path, 'dir');
 		const originalReaddir = fs.readdir;
 
-		const result = await withReaddirStub(
-			(async (...args: Parameters<typeof fs.readdir>) => {
-				if (String(args[0]) === targetDirectory) {
-					return [nfdLower, nfcUpper] as never;
-				}
-				return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
-			}) as typeof fs.readdir,
-			() => checkCaseDifferences([`dir/${nfcLower}`], fixture.path),
-		);
+		const spy = spyOn(fs, 'readdir', (async (...args: Parameters<typeof fs.readdir>) => {
+			if (String(args[0]) === targetDirectory) {
+				return [nfdLower, nfcUpper] as never;
+			}
+			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+		}) as typeof fs.readdir);
+		onTestFinish(() => spy.restore());
 
+		const result = await checkCaseDifferences([`dir/${nfcLower}`], fixture.path);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
