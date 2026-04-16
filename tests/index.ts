@@ -145,6 +145,19 @@ describe('checkCaseDifferences', () => {
 // describe in parallel by default, which would let two spies' install/restore
 // races interleave and corrupt each other. Run them sequentially instead.
 describe('checkCaseDifferences (with fs.readdir spy)', () => {
+	const withReaddirStub = async <T>(
+		stub: typeof fs.readdir,
+		run: () => Promise<T>,
+	): Promise<T> => {
+		const original = fs.readdir;
+		fs.readdir = stub;
+		try {
+			return await run();
+		} finally {
+			fs.readdir = original;
+		}
+	};
+
 	test('reads each directory at most once (perf invariant)', async () => {
 		await using fixture = await createFixture({
 			'src/a/one.ts': '',
@@ -172,22 +185,18 @@ describe('checkCaseDifferences (with fs.readdir spy)', () => {
 
 		const readdirCalls: string[] = [];
 		const originalReaddir = fs.readdir;
-		const spy = (async (...args: Parameters<typeof fs.readdir>) => {
-			const callPath = String(args[0]);
-			// Filter to calls targeting our fixture; other tests may also be
-			// hitting fs.readdir during this window.
-			if (callPath.startsWith(fixture.path)) {
-				readdirCalls.push(callPath);
-			}
-			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
-		}) as typeof fs.readdir;
-		fs.readdir = spy;
-
-		try {
-			await checkCaseDifferences(gitFiles, fixture.path);
-		} finally {
-			fs.readdir = originalReaddir;
-		}
+		await withReaddirStub(
+			(async (...args: Parameters<typeof fs.readdir>) => {
+				const callPath = String(args[0]);
+				// Filter to calls targeting our fixture; other tests may also be
+				// hitting fs.readdir during this window.
+				if (callPath.startsWith(fixture.path)) {
+					readdirCalls.push(callPath);
+				}
+				return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+			}) as typeof fs.readdir,
+			() => checkCaseDifferences(gitFiles, fixture.path),
+		);
 
 		onTestFail(() => {
 			console.log('readdir calls:', readdirCalls);
@@ -209,27 +218,24 @@ describe('checkCaseDifferences (with fs.readdir spy)', () => {
 			'src/index.ts': 'content',
 		});
 		const targetDirectory = path.join(fixture.path, 'src');
-
 		const originalReaddir = fs.readdir;
-		const spy = (async (...args: Parameters<typeof fs.readdir>) => {
-			if (String(args[0]) === targetDirectory) {
-				// Pretend the directory has both case variants.
-				return ['index.ts', 'INDEX.ts'] as never;
-			}
-			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
-		}) as typeof fs.readdir;
-		fs.readdir = spy;
 
-		try {
-			const result = await checkCaseDifferences(['src/index.ts'], fixture.path);
-			onTestFail(() => {
-				console.log('Result:', result);
-			});
-			// 'src/index.ts' is an exact entry — should not be reported as a difference.
-			expect(result).toStrictEqual([]);
-		} finally {
-			fs.readdir = originalReaddir;
-		}
+		const result = await withReaddirStub(
+			(async (...args: Parameters<typeof fs.readdir>) => {
+				if (String(args[0]) === targetDirectory) {
+					// Pretend the directory has both case variants.
+					return ['index.ts', 'INDEX.ts'] as never;
+				}
+				return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+			}) as typeof fs.readdir,
+			() => checkCaseDifferences(['src/index.ts'], fixture.path),
+		);
+
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+		// 'src/index.ts' is an exact entry — should not be reported as a difference.
+		expect(result).toStrictEqual([]);
 	});
 
 	// When a directory contains two case-equivalent siblings — one that's only a
@@ -245,26 +251,23 @@ describe('checkCaseDifferences (with fs.readdir spy)', () => {
 			'dir/.gitkeep': '',
 		});
 		const targetDirectory = path.join(fixture.path, 'dir');
-
 		const originalReaddir = fs.readdir;
-		const spy = (async (...args: Parameters<typeof fs.readdir>) => {
-			if (String(args[0]) === targetDirectory) {
-				return [nfdLower, nfcUpper] as never;
-			}
-			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
-		}) as typeof fs.readdir;
-		fs.readdir = spy;
 
-		try {
-			const result = await checkCaseDifferences([`dir/${nfcLower}`], fixture.path);
-			onTestFail(() => {
-				console.log('Result:', result);
-			});
-			// nfdLower is normalization-equal to nfcLower — no case difference to report.
-			expect(result).toStrictEqual([]);
-		} finally {
-			fs.readdir = originalReaddir;
-		}
+		const result = await withReaddirStub(
+			(async (...args: Parameters<typeof fs.readdir>) => {
+				if (String(args[0]) === targetDirectory) {
+					return [nfdLower, nfcUpper] as never;
+				}
+				return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+			}) as typeof fs.readdir,
+			() => checkCaseDifferences([`dir/${nfcLower}`], fixture.path),
+		);
+
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+		// nfdLower is normalization-equal to nfcLower — no case difference to report.
+		expect(result).toStrictEqual([]);
 	});
 }, { parallel: false });
 

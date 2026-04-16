@@ -62,7 +62,7 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 			if (!actualSegment) {
 				return undefined;
 			}
-			actualPath = actualPath === '.' ? actualSegment : `${actualPath}/${actualSegment}`;
+			actualPath = path.posix.join(actualPath, actualSegment);
 		}
 		return actualPath;
 	};
@@ -74,8 +74,13 @@ export const checkCaseDifferences = async (gitFiles: string[], cwd = '.') => {
 	const result: string[][] = [];
 	for (const [gitPath, actualPath] of resolved) {
 		// Case-preserving normalization compare: a pure NFC/NFD difference isn't
-		// a case change and shouldn't be reported.
-		if (actualPath && normalize(actualPath) !== normalize(gitPath)) {
+		// a case change and shouldn't be reported. Byte-equality short-circuits
+		// the normalize calls in the (overwhelmingly common) no-difference case.
+		if (
+			actualPath
+			&& actualPath !== gitPath
+			&& normalize(actualPath) !== normalize(gitPath)
+		) {
 			result.push([gitPath, actualPath]);
 		}
 	}
