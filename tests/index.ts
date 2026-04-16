@@ -1,3 +1,4 @@
+import fs from 'node:fs/promises';
 import {
 	describe, test, expect, onTestFail,
 } from 'manten';
@@ -9,20 +10,72 @@ import { gitDetectCaseChange } from './utils/git-detect-case-change.ts';
 import { chmod } from './utils/chmod.ts';
 
 describe('checkCaseDifferences', () => {
+	test('reads each directory at most once (perf invariant)', async () => {
+		await using fixture = await createFixture({
+			'src/a/one.ts': '',
+			'src/a/two.ts': '',
+			'src/a/three.ts': '',
+			'src/b/one.ts': '',
+			'src/b/two.ts': '',
+			'lib/x/y/deep.ts': '',
+			'lib/x/y/deeper.ts': '',
+			'lib/x/z/file.ts': '',
+			'readme.md': '',
+		});
+
+		const gitFiles = [
+			'src/a/one.ts',
+			'src/a/two.ts',
+			'src/a/three.ts',
+			'src/b/one.ts',
+			'src/b/two.ts',
+			'lib/x/y/deep.ts',
+			'lib/x/y/deeper.ts',
+			'lib/x/z/file.ts',
+			'readme.md',
+		];
+
+		const readdirCalls: string[] = [];
+		const originalReaddir = fs.readdir;
+		const spy = (async (...args: Parameters<typeof fs.readdir>) => {
+			const callPath = String(args[0]);
+			// Filter to calls targeting our fixture to avoid pollution
+			// from tests running in parallel.
+			if (callPath.startsWith(fixture.path)) {
+				readdirCalls.push(callPath);
+			}
+			return (originalReaddir as (...arguments_: unknown[]) => unknown).apply(fs, args);
+		}) as typeof fs.readdir;
+		fs.readdir = spy;
+
+		try {
+			await checkCaseDifferences(gitFiles, fixture.path);
+		} finally {
+			fs.readdir = originalReaddir;
+		}
+
+		onTestFail(() => {
+			console.log('readdir calls:', readdirCalls);
+		});
+
+		// Unique directories touched: fixture root, src, src/a, src/b, lib, lib/x, lib/x/y, lib/x/z = 8
+		const uniqueDirectoryCount = new Set(readdirCalls).size;
+		expect(uniqueDirectoryCount).toBe(8);
+		// Each unique directory should be read exactly once - the whole point of this module.
+		expect(readdirCalls.length).toBe(uniqueDirectoryCount);
+	});
+
 	test('detects file name case difference', async () => {
 		await using fixture = await createFixture({
 			'src/index.ts': 'content',
 		});
 
-		// Git thinks the file is INDEX.ts, but filesystem has index.ts
 		const result = await checkCaseDifferences(['src/INDEX.ts'], fixture.path);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
 
-		expect(result.length).toBe(1);
-		expect(result[0]![0]).toBe('src/INDEX.ts');
-		expect(result[0]![1]).toBe('src/index.ts');
+		expect(result).toStrictEqual([['src/INDEX.ts', 'src/index.ts']]);
 	});
 
 	test('detects directory case difference', async () => {
@@ -30,15 +83,12 @@ describe('checkCaseDifferences', () => {
 			'src/index.ts': 'content',
 		});
 
-		// Git thinks the directory is SRC, but filesystem has src
 		const result = await checkCaseDifferences(['SRC/index.ts'], fixture.path);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
 
-		expect(result.length).toBe(1);
-		expect(result[0]![0]).toBe('SRC/index.ts');
-		expect(result[0]![1]).toBe('src/index.ts');
+		expect(result).toStrictEqual([['SRC/index.ts', 'src/index.ts']]);
 	});
 
 	test('detects nested directory case difference', async () => {
@@ -51,9 +101,7 @@ describe('checkCaseDifferences', () => {
 			console.log('Result:', result);
 		});
 
-		expect(result.length).toBe(1);
-		expect(result[0]![0]).toBe('src/COMPONENTS/ui/Button.tsx');
-		expect(result[0]![1]).toBe('src/components/ui/Button.tsx');
+		expect(result).toStrictEqual([['src/COMPONENTS/ui/Button.tsx', 'src/components/ui/Button.tsx']]);
 	});
 
 	test('returns empty when casing matches', async () => {
@@ -62,7 +110,7 @@ describe('checkCaseDifferences', () => {
 		});
 
 		const result = await checkCaseDifferences(['src/index.ts'], fixture.path);
-		expect(result.length).toBe(0);
+		expect(result).toStrictEqual([]);
 	});
 
 	test('handles multiple files with mixed differences', async () => {
@@ -73,36 +121,30 @@ describe('checkCaseDifferences', () => {
 		});
 
 		const result = await checkCaseDifferences([
-			'src/FILE1.ts', // case differs
-			'src/file2.ts', // matches
-			'LIB/utils.ts', // directory case differs
+			'src/FILE1.ts',
+			'src/file2.ts',
+			'LIB/utils.ts',
 		], fixture.path);
 		onTestFail(() => {
 			console.log('Result:', result);
 		});
 
-		expect(result.length).toBe(2);
-
-		const file1Change = result.find(r => r[0] === 'src/FILE1.ts');
-		expect(file1Change).toBeDefined();
-		expect(file1Change![1]).toBe('src/file1.ts');
-
-		const libraryChange = result.find(r => r[0] === 'LIB/utils.ts');
-		expect(libraryChange).toBeDefined();
-		expect(libraryChange![1]).toBe('lib/utils.ts');
+		expect(result).toStrictEqual([
+			['src/FILE1.ts', 'src/file1.ts'],
+			['LIB/utils.ts', 'lib/utils.ts'],
+		]);
 	});
 
-	test('handles file that does not exist on filesystem', async () => {
+	test('silently skips nonexistent files', async () => {
 		await using fixture = await createFixture({
 			'src/index.ts': 'content',
 		});
 
-		// Nonexistent file should be silently skipped
 		const result = await checkCaseDifferences(['src/nonexistent.ts'], fixture.path);
-		expect(result.length).toBe(0);
+		expect(result).toStrictEqual([]);
 	});
 
-	test('handles root-level file case difference', async () => {
+	test('detects root-level file case difference', async () => {
 		await using fixture = await createFixture({
 			'readme.md': 'content',
 		});
@@ -112,9 +154,44 @@ describe('checkCaseDifferences', () => {
 			console.log('Result:', result);
 		});
 
-		expect(result.length).toBe(1);
-		expect(result[0]![0]).toBe('README.md');
-		expect(result[0]![1]).toBe('readme.md');
+		expect(result).toStrictEqual([['README.md', 'readme.md']]);
+	});
+
+	// On macOS/Windows a file can be stored on disk in NFD (decomposed) form while
+	// git ls-tree returns it in NFC (composed) form — the two byte sequences are
+	// semantically the same file, so nothing should be reported as "different".
+	test('treats NFC git path as equal to NFD disk file', async () => {
+		const nfcName = 'caf\u00E9.ts'; // 'café.ts' composed
+		const nfdName = 'cafe\u0301.ts'; // 'café.ts' decomposed
+
+		await using fixture = await createFixture({
+			[nfdName]: 'content',
+		});
+
+		const result = await checkCaseDifferences([nfcName], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result).toStrictEqual([]);
+	});
+
+	// Normalization handling must not hide genuine case differences that happen to
+	// coincide with a normalization difference.
+	test('detects case difference even when disk form is NFD', async () => {
+		const nfcLowerName = 'caf\u00E9.ts'; // 'café.ts' composed lowercase
+		const nfdUpperName = 'CAFE\u0301.TS'; // 'CAFÉ.TS' decomposed uppercase
+
+		await using fixture = await createFixture({
+			[nfdUpperName]: 'content',
+		});
+
+		const result = await checkCaseDifferences([nfcLowerName], fixture.path);
+		onTestFail(() => {
+			console.log('Result:', result);
+		});
+
+		expect(result).toStrictEqual([[nfcLowerName, nfdUpperName]]);
 	});
 });
 
